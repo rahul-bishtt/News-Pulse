@@ -22,7 +22,7 @@ function createJob(jobId) {
 function updateJob(jobId, updates) {
   const job = jobs.get(jobId);
   if (!job) return null;
-  
+
   const updatedJob = { ...job, ...updates };
   jobs.set(jobId, updatedJob);
   return updatedJob;
@@ -32,8 +32,18 @@ function getJob(jobId) {
   return jobs.get(jobId) || null;
 }
 
+function hasActiveJob() {
+  for (const job of jobs.values()) {
+    if (job.status === 'pending' || job.status === 'running') {
+      return true;
+    }
+  }
+  return false;
+}
+
 module.exports = {
   createJob,
   updateJob,
   getJob,
+  hasActiveJob,
 };

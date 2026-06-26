@@ -1,57 +1,51 @@
 const express = require('express');
-const { validateClusterId } = require('../middleware/validate');
+const {
+  validateClusterId,
+  validateClusterQuery,
+} = require('../middleware/validate');
+const queries = require('../db/queries');
 const router = express.Router();
 
-// TODO:
-// Implement GET / endpoint.
-//   - Query Postgres for all clusters containing start, end timestamps and member article count.
-//   - Return 200 OK with the array of cluster structures.
-// Implement GET /:id endpoint.
-//   - Check cluster availability in database.
-//   - Return 404 Not Found if missing, or 200 OK with the detail mapping.
-
-router.get('/', (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
-    // Placeholder response
-    res.json([
-      {
-        id: 1,
-        label: 'senate election bill',
-        articleCount: 1,
-        startTime: new Date().toISOString(),
-        endTime: new Date().toISOString(),
-      },
-    ]);
+    const clusters = await queries.getAllClusters();
+    res.json(clusters);
   } catch (error) {
     next(error);
   }
 });
 
-router.get('/:id', validateClusterId, (req, res, next) => {
-  try {
-    const { idVal } = req.params;
-    
-    // Placeholder checking logic
-    if (idVal !== 1) {
-      return res.status(404).json({ error: 'Cluster not found' });
+router.get(
+  '/:id',
+  validateClusterId,
+  validateClusterQuery,
+  async (req, res, next) => {
+    try {
+      const { idVal } = req.params;
+      const { pageVal, limitVal, source } = req.query;
+
+      const cluster = await queries.getCluster(idVal);
+      if (!cluster) {
+        return res.status(404).json({ error: 'Cluster not found' });
+      }
+
+      const offset = (pageVal - 1) * limitVal;
+      const articles = await queries.getArticlesByClusterId(idVal, {
+        source,
+        limit: limitVal,
+        offset,
+      });
+
+      res.json({
+        ...cluster,
+        articles,
+        page: pageVal,
+        limit: limitVal,
+      });
+    } catch (error) {
+      next(error);
     }
-
-    res.json({
-      id: 1,
-      label: 'senate election bill',
-      articles: [
-        {
-          id: 101,
-          source: 'BBC',
-          title: 'Senate advances election bill',
-          url: 'https://www.bbc.com/news/example',
-          publishedAt: new Date().toISOString(),
-        },
-      ],
-    });
-  } catch (error) {
-    next(error);
   }
-});
+);
 
 module.exports = router;

@@ -16,7 +16,7 @@ const pool = new Pool({
 
 /**
  * Tests the database connection pool by running a simple query.
- * 
+ *
  * @async
  * @function testConnection
  * @returns {Promise<boolean>} Resolves to true if the connection was successful.
@@ -25,7 +25,9 @@ const pool = new Pool({
 async function testConnection() {
   try {
     const res = await pool.query('SELECT now()');
-    console.log(`Database connection verified. Server time: ${res.rows[0].now}`);
+    console.log(
+      `Database connection verified. Server time: ${res.rows[0].now}`
+    );
     return true;
   } catch (error) {
     console.error('Database connection test failed:', error.message);
@@ -36,7 +38,7 @@ async function testConnection() {
 /**
  * Executes a callback function containing database actions inside a SQL transaction block.
  * Handles BEGIN, COMMIT, and ROLLBACK automatically.
- * 
+ *
  * @async
  * @function withTransaction
  * @param {function(object): Promise<any>} callback - Async function that performs query operations. Takes checked out PG client as argument.
@@ -61,7 +63,7 @@ async function withTransaction(callback) {
 
 /**
  * Shuts down the PostgreSQL connection pool gracefully, waiting for all checked-out clients to return.
- * 
+ *
  * @async
  * @function closePool
  * @returns {Promise<void>}

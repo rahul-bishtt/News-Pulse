@@ -25,9 +25,26 @@ app.use('/clusters', clustersRouter);
 app.use('/timeline', timelineRouter);
 app.use('/ingest', ingestRouter);
 
+const { testConnection } = require('./db/pool');
+const packageJson = require('../package.json');
+
 // Root verification endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'News Pulse Backend' });
+app.get('/health', async (req, res) => {
+  try {
+    await testConnection();
+    res.json({
+      status: 'ok',
+      database: 'connected',
+      version: packageJson.version || '1.0.0',
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      database: 'disconnected',
+      version: packageJson.version || '1.0.0',
+      error: error.message,
+    });
+  }
 });
 
 // Error handling middleware

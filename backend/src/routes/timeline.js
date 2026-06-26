@@ -1,25 +1,45 @@
 const express = require('express');
+const queries = require('../db/queries');
 const router = express.Router();
 
-// TODO:
-// Implement GET / endpoint.
-//   - Execute group operations over active clusters.
-//   - Calculate normalized intensity based on largest cluster article volume.
-//   - Return 200 OK with timeline points array.
-
-router.get('/', (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
-    // Placeholder response
-    res.json([
-      {
-        id: 1,
-        label: 'senate election bill',
-        startTime: new Date().toISOString(),
-        endTime: new Date().toISOString(),
-        articleCount: 1,
-        intensity: 1.0,
-      },
-    ]);
+    const clusters = await queries.getAllClusters();
+
+    // Filter out clusters with zero articles or invalid start times
+    const activeClusters = clusters.filter(
+      (c) => c.articleCount > 0 && c.startTime !== null
+    );
+
+    if (activeClusters.length === 0) {
+      return res.json([]);
+    }
+
+    // Find the maximum articleCount for normalization
+    const maxArticleCount = Math.max(
+      ...activeClusters.map((c) => c.articleCount)
+    );
+
+    // Map each cluster to a timeline point with normalized intensity
+    const timelineData = activeClusters.map((c) => {
+      const intensity =
+        maxArticleCount > 0
+          ? parseFloat((c.articleCount / maxArticleCount).toFixed(4))
+          : 0.0;
+      return {
+        id: c.id,
+        label: c.label,
+        startTime: c.startTime,
+        endTime: c.endTime,
+        articleCount: c.articleCount,
+        intensity,
+      };
+    });
+
+    // Sort chronologically by startTime ascending for timeline rendering
+    timelineData.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+    res.json(timelineData);
   } catch (error) {
     next(error);
   }

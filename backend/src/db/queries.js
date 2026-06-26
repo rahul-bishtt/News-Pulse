@@ -2,7 +2,7 @@ const { pool } = require('./pool');
 
 /**
  * Helper to determine whether to use a transaction client or the global connection pool.
- * 
+ *
  * @param {object} [client] - Optional client from pool checkout (used in transactions).
  * @returns {object} DB executor (either the client or the pool).
  */
@@ -10,7 +10,7 @@ const getExecutor = (client) => client || pool;
 
 /**
  * Creates a new article in the database.
- * 
+ *
  * @async
  * @function createArticle
  * @param {object} article - The article details.
@@ -39,7 +39,7 @@ async function createArticle(article, client) {
     article.body_text || null,
     article.url,
     article.published_at || null,
-    article.cluster_id || null
+    article.cluster_id || null,
   ];
 
   try {
@@ -53,7 +53,7 @@ async function createArticle(article, client) {
 
 /**
  * Retrieves an article record by its unique URL.
- * 
+ *
  * @async
  * @function getArticleByUrl
  * @param {string} url - The exact URL of the article.
@@ -79,7 +79,7 @@ async function getArticleByUrl(url, client) {
 
 /**
  * Creates a new cluster topic label.
- * 
+ *
  * @async
  * @function createCluster
  * @param {string} label - The descriptive title/label for the cluster.
@@ -105,7 +105,7 @@ async function createCluster(label, client) {
 
 /**
  * Assigns an article to a specific cluster.
- * 
+ *
  * @async
  * @function assignArticleToCluster
  * @param {number} articleId - The ID of the article to update.
@@ -133,7 +133,7 @@ async function assignArticleToCluster(articleId, clusterId, client) {
 
 /**
  * Retrieves a cluster by its ID alongside aggregate statistics (article count, timeline range).
- * 
+ *
  * @async
  * @function getCluster
  * @param {number} id - The cluster ID.
@@ -144,10 +144,10 @@ async function assignArticleToCluster(articleId, clusterId, client) {
 async function getCluster(id, client) {
   const executor = getExecutor(client);
   const sql = `
-    SELECT c.id, c.label, c.created_at, c.updated_at,
-           COUNT(a.id)::int AS article_count,
-           MIN(a.published_at) AS start_time,
-           MAX(a.published_at) AS end_time
+    SELECT c.id, c.label, c.created_at AS "createdAt", c.updated_at AS "updatedAt",
+           COUNT(a.id)::int AS "articleCount",
+           MIN(a.published_at) AS "startTime",
+           MAX(a.published_at) AS "endTime"
     FROM clusters c
     LEFT JOIN articles a ON c.id = a.cluster_id
     WHERE c.id = $1
@@ -163,8 +163,8 @@ async function getCluster(id, client) {
 }
 
 /**
- * Retrieves all clusters alongside aggregate statistics, sorted by timeline start_time descending.
- * 
+ * Retrieves all clusters alongside aggregate statistics, sorted by timeline startTime descending.
+ *
  * @async
  * @function getAllClusters
  * @param {object} [client] - Optional transaction client.
@@ -174,14 +174,14 @@ async function getCluster(id, client) {
 async function getAllClusters(client) {
   const executor = getExecutor(client);
   const sql = `
-    SELECT c.id, c.label, c.created_at, c.updated_at,
-           COUNT(a.id)::int AS article_count,
-           MIN(a.published_at) AS start_time,
-           MAX(a.published_at) AS end_time
+    SELECT c.id, c.label, c.created_at AS "createdAt", c.updated_at AS "updatedAt",
+           COUNT(a.id)::int AS "articleCount",
+           MIN(a.published_at) AS "startTime",
+           MAX(a.published_at) AS "endTime"
     FROM clusters c
     LEFT JOIN articles a ON c.id = a.cluster_id
     GROUP BY c.id, c.label, c.created_at, c.updated_at
-    ORDER BY start_time DESC NULLS LAST, c.id DESC
+    ORDER BY "startTime" DESC NULLS LAST, c.id DESC
   `;
   try {
     const res = await executor.query(sql);
@@ -193,25 +193,60 @@ async function getAllClusters(client) {
 }
 
 /**
- * Retrieves all articles belonging to a specific cluster, ordered by publication date descending.
- * 
+ * Retrieves articles belonging to a specific cluster, ordered by publication date descending.
+ * Supports filtering by source and pagination limit/offset.
+ *
  * @async
  * @function getArticlesByClusterId
  * @param {number} clusterId - The parent cluster ID.
+ * @param {object} [options] - Optional query parameters.
+ * @param {string} [options.source] - Optional source to filter articles by.
+ * @param {number} [options.limit] - Optional pagination limit.
+ * @param {number} [options.offset] - Optional pagination offset.
  * @param {object} [client] - Optional transaction client.
  * @returns {Promise<Array<object>>} List of articles belonging to the cluster.
  * @throws {Error} If database query fails.
  */
-async function getArticlesByClusterId(clusterId, client) {
-  const executor = getExecutor(client);
-  const sql = `
-    SELECT id, source, title, summary, body_text, url, published_at, fetched_at, cluster_id
+async function getArticlesByClusterId(clusterId, options = {}, client) {
+  // If the second parameter is a client (e.g. from an old invocation pattern), handle it gracefully
+  let finalClient = client;
+  let finalOptions = options;
+  if (options && options.query && typeof options.query === 'function') {
+    finalClient = options;
+    finalOptions = {};
+  }
+
+  const executor = getExecutor(finalClient);
+  let sql = `
+    SELECT id, source, title, summary, body_text, url, 
+           published_at AS "publishedAt", 
+           fetched_at AS "fetchedAt", 
+           cluster_id AS "clusterId"
     FROM articles
     WHERE cluster_id = $1
-    ORDER BY published_at DESC, id DESC
   `;
+  const values = [clusterId];
+  let paramIndex = 2;
+
+  if (finalOptions.source) {
+    sql += ` AND source = $${paramIndex++}`;
+    values.push(finalOptions.source);
+  }
+
+  sql += ' ORDER BY published_at DESC, id DESC';
+
+  if (finalOptions.limit !== undefined) {
+    sql += ` LIMIT $${paramIndex++}`;
+    values.push(finalOptions.limit);
+  }
+
+  if (finalOptions.offset !== undefined) {
+    sql += ` OFFSET $${paramIndex++}`;
+    values.push(finalOptions.offset);
+  }
+
   try {
-    const res = await executor.query(sql, [clusterId]);
+    const res = await executor.query(sql, values);
     return res.rows;
   } catch (error) {
     console.error('Error in getArticlesByClusterId query:', error.message);

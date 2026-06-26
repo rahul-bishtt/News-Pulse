@@ -1,28 +1,86 @@
 const express = require('express');
-const { createJob, getJob } = require('../jobs/jobStore');
-const router = express.Router();
+const crypto = require('crypto');
+const { spawn } = require('child_process');
+const path = require('path');
+const {
+  createJob,
+  updateJob,
+  getJob,
+  hasActiveJob,
+} = require('../jobs/jobStore');
 
-// TODO:
-// Implement POST /trigger endpoint.
-//   - Generate unique jobId and record status as 'pending' in jobStore.
-//   - Spawn python child_process executing: [PYTHON_EXECUTABLE] [SCRAPER_PATH] --mode=incremental
-//   - Handle stdout/stderr lines, update job status to 'running' and finally 'done' or 'failed'.
-//   - Return 202 Accepted with the generated { jobId, status: 'pending' }.
-// Implement GET /status/:jobId endpoint.
-//   - Search jobStore for requested jobId.
-//   - Return 404 Not Found if missing, or 200 OK with the full tracking metadata.
+const router = express.Router();
 
 router.post('/trigger', (req, res, next) => {
   try {
-    const jobId = Math.random().toString(36).substring(2, 8);
-    const job = createJob(jobId);
-    
-    // In actual implementation, child_process will spawn the scraper here.
-    // For scaffolding, we keep the job synchronous or state-placeholder.
-    
+    if (hasActiveJob()) {
+      return res.status(409).json({
+        error: 'Ingestion already running',
+      });
+    }
+
+    const jobId = crypto.randomUUID();
+    createJob(jobId);
+
+    const pythonExecutable = process.env.PYTHON_EXECUTABLE || 'python';
+    const scraperPath = path.resolve(__dirname, '../../../scraper/main.py');
+    const scraperCwd = path.resolve(__dirname, '../../../scraper');
+
+    const child = spawn(pythonExecutable, [scraperPath, '--mode=incremental'], {
+      cwd: scraperCwd,
+      env: { ...process.env },
+    });
+
+    let stderrData = '';
+
+    child.on('spawn', () => {
+      updateJob(jobId, { status: 'running' });
+    });
+
+    child.stdout.on('data', (data) => {
+      console.log(`[Scraper stdout] ${data.toString().trim()}`);
+    });
+
+    child.stderr.on('data', (data) => {
+      const errStr = data.toString();
+      stderrData += errStr;
+      console.error(`[Scraper stderr] ${errStr.trim()}`);
+    });
+
+    child.on('error', (err) => {
+      console.error('Failed to start scraper process:', err);
+      updateJob(jobId, {
+        status: 'failed',
+        finishedAt: new Date(),
+        error: err.message || 'Failed to spawn scraper process',
+      });
+    });
+
+    child.on('close', (code) => {
+      console.log(`Scraper process exited with code ${code}`);
+      const job = getJob(jobId);
+      if (job && job.status === 'failed') {
+        return;
+      }
+
+      if (code === 0) {
+        updateJob(jobId, {
+          status: 'done',
+          finishedAt: new Date(),
+        });
+      } else {
+        updateJob(jobId, {
+          status: 'failed',
+          finishedAt: new Date(),
+          error:
+            stderrData.trim() || `Scraper exited with non-zero code ${code}`,
+        });
+      }
+    });
+
     res.status(202).json({
-      jobId: job.jobId,
-      status: job.status,
+      jobId,
+      status: 'pending',
     });
   } catch (error) {
     next(error);
@@ -42,6 +100,8 @@ router.get('/status/:jobId', (req, res) => {
   res.json({
     jobId: job.jobId,
     status: job.status,
+    startedAt: job.startedAt,
+    finishedAt: job.finishedAt,
     error: job.error,
   });
 });

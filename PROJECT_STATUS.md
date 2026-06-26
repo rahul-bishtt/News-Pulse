@@ -10,8 +10,8 @@
 - [x] Database implementation
 - [x] RSS Ingestion & Article Extraction
 - [x] Topic Clustering Engine
+- [x] REST API implementation
 
 Pending:
-- REST API implementation
 - Timeline UI
 - Deployment
