@@ -76,23 +76,27 @@ export const Timeline: React.FC<TimelineProps> = ({
               </div>
             </div>
             {/* Row skeletons */}
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="flex p-3 items-center h-12">
-                <div className="w-[260px] flex-shrink-0 flex items-center justify-between pr-4">
-                  <Skeleton className="h-4 w-36" />
-                  <Skeleton className="h-4 w-8 rounded-full" />
+            {Array.from({ length: 6 }).map((_, i) => {
+              const widths = ['45%', '65%', '35%', '80%', '55%', '50%'];
+              const offsets = ['10%', '20%', '5%', '15%', '30%', '12%'];
+              return (
+                <div key={i} className="flex p-3 items-center h-12">
+                  <div className="w-[260px] flex-shrink-0 flex items-center justify-between pr-4">
+                    <Skeleton className="h-4 w-36" />
+                    <Skeleton className="h-4 w-8 rounded-full" />
+                  </div>
+                  <div className="flex-grow pl-4 relative">
+                    <Skeleton 
+                      className="h-2 rounded-full" 
+                      style={{ 
+                        width: widths[i % widths.length], 
+                        marginLeft: offsets[i % offsets.length] 
+                      }} 
+                    />
+                  </div>
                 </div>
-                <div className="flex-grow pl-4 relative">
-                  <Skeleton 
-                    className="h-2 rounded-full" 
-                    style={{ 
-                      width: `${30 + Math.random() * 40}%`, 
-                      marginLeft: `${Math.random() * 30}%` 
-                    }} 
-                  />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>

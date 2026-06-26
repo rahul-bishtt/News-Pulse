@@ -32,13 +32,17 @@ export default function Home() {
   const [lastSyncTime, setLastSyncTime] = useState<string>('Never');
 
   // Activity log states
-  const [activities, setActivities] = useState<ActivityEvent[]>([
-    {
-      timestamp: new Date().toLocaleTimeString(),
-      message: 'System initialization completed. Dashboard online.',
-      type: 'info',
-    },
-  ]);
+  const [activities, setActivities] = useState<ActivityEvent[]>([]);
+
+  useEffect(() => {
+    setActivities([
+      {
+        timestamp: new Date().toLocaleTimeString(),
+        message: 'System initialization completed. Dashboard online.',
+        type: 'info',
+      },
+    ]);
+  }, []);
 
   const timelineDataRef = useRef<TimelineData[]>([]);
   useEffect(() => {
