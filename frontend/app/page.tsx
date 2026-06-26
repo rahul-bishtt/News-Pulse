@@ -3,12 +3,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Activity, AlertCircle, FileText, LayoutGrid, Award, Clock, Terminal, Search } from 'lucide-react';
 import Timeline from '@/components/Timeline';
-import ClusterDetail from '@/components/ClusterDetail';
+import ClusterDetail, { ArticleList } from '@/components/ClusterDetail';
 import TrendingTopics from '@/components/TrendingTopics';
 import RefreshButton from '@/components/RefreshButton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { getTimeline, getClusterById, TimelineData } from '@/lib/api';
+import { getTimeline, getClusterById, TimelineData, ClusterDetail as ClusterDetailType, Article } from '@/lib/api';
 
 interface ActivityEvent {
   timestamp: string;
@@ -33,6 +33,14 @@ export default function Home() {
 
   // Activity log states
   const [activities, setActivities] = useState<ActivityEvent[]>([]);
+
+  // Lifted cluster detail states
+  const [clusterDetail, setClusterDetail] = useState<ClusterDetailType | null>(null);
+  const [clusterLoading, setClusterLoading] = useState(false);
+  const [clusterError, setClusterError] = useState<string | null>(null);
+  const [clusterPage, setClusterPage] = useState(1);
+  const [clusterArticles, setClusterArticles] = useState<Article[]>([]);
+  const [availableSources, setAvailableSources] = useState<string[]>([]);
 
   useEffect(() => {
     setActivities([
@@ -150,9 +158,48 @@ export default function Home() {
     };
   }, [loadDashboardData]);
 
+  // Load cluster detail when ID or Page changes
+  useEffect(() => {
+    if (!selectedClusterId) {
+      setClusterDetail(null);
+      setClusterArticles([]);
+      setAvailableSources([]);
+      return;
+    }
+
+    let isMounted = true;
+    const loadDetail = async () => {
+      setClusterLoading(true);
+      setClusterError(null);
+      try {
+        const data = await getClusterById(selectedClusterId, clusterPage, 20);
+        if (isMounted) {
+          setClusterDetail(data);
+          setClusterArticles(data.articles);
+          const sources = [...new Set(data.articles.map((a) => a.source))];
+          setAvailableSources(sources);
+        }
+      } catch {
+        if (isMounted) {
+          setClusterError('Failed to load topic details.');
+        }
+      } finally {
+        if (isMounted) {
+          setClusterLoading(false);
+        }
+      }
+    };
+
+    loadDetail();
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedClusterId, clusterPage]);
+
   const handleSelectCluster = (id: number) => {
     setSelectedClusterId(id);
     setSelectedSources([]);
+    setClusterPage(1);
   };
 
   // Compute stats metrics
@@ -202,7 +249,7 @@ export default function Home() {
 
           {/* KPI Dashboard Overview Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="bg-card/40 border-border">
+            <Card className="bg-card/40 border-border hover:border-primary/30 transition-all duration-300">
               <CardHeader className="p-4 pb-2">
                 <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                   <LayoutGrid size={11} /> Total Topics
@@ -214,7 +261,7 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card className="bg-card/40 border-border">
+            <Card className="bg-card/40 border-border hover:border-primary/30 transition-all duration-300">
               <CardHeader className="p-4 pb-2">
                 <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                   <FileText size={11} /> Total Articles
@@ -226,7 +273,7 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card className="bg-card/40 border-border">
+            <Card className="bg-card/40 border-border hover:border-primary/30 transition-all duration-300">
               <CardHeader className="p-4 pb-2">
                 <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                   <Award size={11} /> Top Source
@@ -242,7 +289,7 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card className="bg-card/40 border-border">
+            <Card className="bg-card/40 border-border hover:border-primary/30 transition-all duration-300">
               <CardHeader className="p-4 pb-2">
                 <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
                   <Clock size={11} /> Last Ingested
@@ -265,7 +312,7 @@ export default function Home() {
           />
 
           {/* Lower Grid (Trending Topics + Detail Panel) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
             <TrendingTopics
               data={timelineData}
               onSelectCluster={handleSelectCluster}
@@ -274,12 +321,30 @@ export default function Home() {
             />
 
             <ClusterDetail
-              key={selectedClusterId ?? 'empty'}
               clusterId={selectedClusterId}
+              detail={clusterDetail}
+              loading={clusterLoading}
+              error={clusterError}
               selectedSources={selectedSources}
               onChangeSources={setSelectedSources}
+              availableSources={availableSources}
             />
           </div>
+
+          {/* Article List Section (below two-column layout) */}
+          <ArticleList
+            clusterId={selectedClusterId}
+            articles={clusterArticles}
+            filteredArticles={
+              selectedSources.length
+                ? clusterArticles.filter((a) => selectedSources.includes(a.source))
+                : clusterArticles
+            }
+            loading={clusterLoading}
+            error={clusterError}
+            page={clusterPage}
+            onPageChange={setClusterPage}
+          />
         </div>
       </div>
 
