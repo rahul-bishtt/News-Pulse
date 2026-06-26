@@ -60,33 +60,6 @@ export const Timeline: React.FC<TimelineProps> = ({
     return () => ro.disconnect();
   }, []);
 
-  const chartLeft = PADDING.left;
-  const chartRight = width - PADDING.right;
-  const chartWidth = Math.max(chartRight - chartLeft, 1);
-
-  const timestamps = data.flatMap((d) => [
-    new Date(d.startTime).getTime(),
-    new Date(d.endTime).getTime(),
-  ]);
-  const domainMin = timestamps.length ? Math.min(...timestamps) : Date.now() - 86400000;
-  const domainMax = timestamps.length ? Math.max(...timestamps) : Date.now();
-  const domainSpan = Math.max(domainMax - domainMin, 1);
-
-  function xScale(ts: number): number {
-    return chartLeft + ((ts - domainMin) / domainSpan) * chartWidth;
-  }
-
-  const svgHeight = PADDING.top + BAR_HEIGHT + AXIS_HEIGHT + PADDING.bottom;
-
-  const ticks: number[] = Array.from({ length: NUM_TICKS }, (_, i) =>
-    domainMin + (domainSpan / (NUM_TICKS - 1)) * i,
-  );
-
-  const rangeLabel =
-    data.length > 0
-      ? `${formatDateFull(data[0].startTime)} – ${formatDateFull(data[data.length - 1].endTime)} · ${data.length} topics`
-      : '';
-
   /* ── Loading skeleton ── */
   if (loading) {
     return (
@@ -126,6 +99,32 @@ export const Timeline: React.FC<TimelineProps> = ({
       </Card>
     );
   }
+
+  const chartLeft = PADDING.left;
+  const chartRight = width - PADDING.right;
+  const chartWidth = Math.max(chartRight - chartLeft, 1);
+
+  const timestamps = data.flatMap((d) => [
+    new Date(d.startTime).getTime(),
+    new Date(d.endTime).getTime(),
+  ]);
+  const domainMin = Math.min(...timestamps);
+  const domainMax = Math.max(...timestamps);
+  const domainSpan = Math.max(domainMax - domainMin, 1);
+  function xScale(ts: number): number {
+    return chartLeft + ((ts - domainMin) / domainSpan) * chartWidth;
+  }
+
+  const svgHeight = PADDING.top + BAR_HEIGHT + AXIS_HEIGHT + PADDING.bottom;
+
+  const ticks: number[] = Array.from({ length: NUM_TICKS }, (_, i) =>
+    domainMin + (domainSpan / (NUM_TICKS - 1)) * i,
+  );
+
+  const rangeLabel =
+    data.length > 0
+      ? `${formatDateFull(data[0].startTime)} – ${formatDateFull(data[data.length - 1].endTime)} · ${data.length} topics`
+      : '';
 
   return (
     <Card>

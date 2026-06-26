@@ -36,7 +36,16 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    loadDashboardData(false);
+    let isMounted = true;
+    const fetchTimeline = async () => {
+      if (isMounted) {
+        await loadDashboardData(false);
+      }
+    };
+    fetchTimeline();
+    return () => {
+      isMounted = false;
+    };
   }, [loadDashboardData]);
 
   const handleSelectCluster = (id: number) => {
@@ -96,6 +105,7 @@ export default function Home() {
           {/* Right column: Cluster detail */}
           <div className="lg:col-span-1">
             <ClusterDetail
+              key={selectedClusterId ?? 'empty'}
               clusterId={selectedClusterId}
               selectedSources={selectedSources}
               onSourcesDiscovered={handleSourcesDiscovered}

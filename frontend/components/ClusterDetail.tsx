@@ -54,35 +54,38 @@ export const ClusterDetail: React.FC<ClusterDetailProps> = ({
   const [articles, setArticles] = useState<Article[]>([]);
 
   useEffect(() => {
-    if (!clusterId) {
-      setDetail(null);
-      setArticles([]);
-      setPage(1);
-      return;
-    }
+    if (!clusterId) return;
 
-    const load = async (p: number) => {
+    let isMounted = true;
+    const load = async () => {
       setLoading(true);
       setError(null);
       try {
-        const data = await getClusterById(clusterId, p, PAGE_LIMIT);
-        setDetail(data);
-        setArticles(data.articles);
-        // Discover sources from current page
-        if (onSourcesDiscovered) {
-          const sources = [...new Set(data.articles.map((a) => a.source))];
-          onSourcesDiscovered(sources);
+        const data = await getClusterById(clusterId, 1, PAGE_LIMIT);
+        if (isMounted) {
+          setDetail(data);
+          setArticles(data.articles);
+          if (onSourcesDiscovered) {
+            const sources = [...new Set(data.articles.map((a) => a.source))];
+            onSourcesDiscovered(sources);
+          }
         }
       } catch {
-        setError('Failed to load cluster details.');
+        if (isMounted) {
+          setError('Failed to load cluster details.');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    setPage(1);
-    load(1);
-  }, [clusterId]); // eslint-disable-line react-hooks/exhaustive-deps
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, [clusterId, onSourcesDiscovered]);
 
   const handlePageChange = async (newPage: number) => {
     if (!clusterId) return;
