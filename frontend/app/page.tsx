@@ -210,30 +210,39 @@ export default function Home() {
     <main className="min-h-screen bg-background flex flex-col justify-between">
       <div>
         {/* Top Header */}
-        <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-sm">
-          <div className="max-w-screen-xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 flex-1">
-              <Activity size={18} className="text-primary" />
-              <span className="font-semibold text-sm tracking-tight hidden sm:inline">News Pulse</span>
-              <span className="text-xs text-muted-foreground hidden md:inline">|</span>
-              <span className="text-[11px] text-muted-foreground uppercase font-semibold tracking-wider hidden md:inline">
-                AI News Intelligence Dashboard
-              </span>
+        <header className="sticky top-0 z-20 border-b border-[#27272A] bg-[#09090B]/95 backdrop-blur-sm">
+          <div className="max-w-screen-xl mx-auto px-6 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#4F46E5] flex items-center justify-center text-white shadow-lg shadow-[#4F46E5]/20 shrink-0">
+                  <Activity size={18} className="animate-pulse text-[#FAFAFA]" />
+                </div>
+                <div>
+                  <h1 className="text-base font-bold tracking-tight text-[#FAFAFA] flex items-center gap-2">
+                    News Pulse
+                  </h1>
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground max-w-xl leading-relaxed">
+                Track how news stories evolve by clustering related articles from multiple sources.
+              </p>
             </div>
 
-            {/* Topic Search Input */}
-            <div className="relative max-w-xs w-full">
-              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search news topics..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-8 pl-8 pr-3 text-xs bg-secondary/50 border border-border rounded-md text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-              />
-            </div>
+            <div className="flex items-center gap-3">
+              {/* Topic Search Input */}
+              <div className="relative w-full md:w-64">
+                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search news topics..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full h-8 pl-8 pr-3 text-xs bg-[#18181B] border border-[#27272A] rounded-md text-[#FAFAFA] placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#4F46E5] focus:border-[#4F46E5] transition-all"
+                />
+              </div>
 
-            <RefreshButton onComplete={() => loadDashboardData(true)} />
+              <RefreshButton onComplete={() => loadDashboardData(true)} />
+            </div>
           </div>
         </header>
 
@@ -248,59 +257,77 @@ export default function Home() {
           )}
 
           {/* KPI Dashboard Overview Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="bg-card/40 border-border hover:border-primary/30 transition-all duration-300">
-              <CardHeader className="p-4 pb-2">
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <LayoutGrid size={11} /> Total Topics
-                </span>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <div className="text-xl font-bold tracking-tight">{totalTopics}</div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Clustered event categories</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-card/40 border-border hover:border-primary/30 transition-all duration-300">
-              <CardHeader className="p-4 pb-2">
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <FileText size={11} /> Total Articles
-                </span>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <div className="text-xl font-bold tracking-tight">{totalArticles}</div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Ingested from RSS channels</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-card/40 border-border hover:border-primary/30 transition-all duration-300">
-              <CardHeader className="p-4 pb-2">
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <Award size={11} /> Top Source
-                </span>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <div className="text-xl font-bold tracking-tight truncate">
-                  {topSource}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Total Topics Card */}
+            <Card className="bg-[#18181B] border-[#27272A] hover:border-[#4F46E5]/50 transition-all duration-300 shadow-md">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div className="space-y-1 min-w-0">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                    Topics
+                  </span>
+                  <div className="text-2xl font-bold tracking-tight text-[#FAFAFA]">{totalTopics}</div>
+                  <p className="text-[10px] text-muted-foreground truncate">Clustered event categories</p>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {topSourceCount > 0 ? `${topSourceCount} articles in top topic` : 'Scraped feed volume'}
-                </p>
+                <div className="w-10 h-10 rounded-lg bg-[#4F46E5]/10 flex items-center justify-center text-[#4F46E5] shrink-0 ml-3">
+                  <LayoutGrid size={18} />
+                </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-card/40 border-border hover:border-primary/30 transition-all duration-300">
-              <CardHeader className="p-4 pb-2">
-                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <Clock size={11} /> Last Ingested
-                </span>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <div className="text-xl font-bold tracking-tight">{lastSyncTime}</div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Scraper sync status time</p>
+            {/* Total Articles Card */}
+            <Card className="bg-[#18181B] border-[#27272A] hover:border-[#4F46E5]/50 transition-all duration-300 shadow-md">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div className="space-y-1 min-w-0">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                    Articles
+                  </span>
+                  <div className="text-2xl font-bold tracking-tight text-[#FAFAFA]">{totalArticles}</div>
+                  <p className="text-[10px] text-muted-foreground truncate">Ingested RSS content</p>
+                </div>
+                <div className="w-10 h-10 rounded-lg bg-[#4F46E5]/10 flex items-center justify-center text-[#4F46E5] shrink-0 ml-3">
+                  <FileText size={18} />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Top Source Card */}
+            <Card className="bg-[#18181B] border-[#27272A] hover:border-[#4F46E5]/50 transition-all duration-300 shadow-md">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div className="space-y-1 min-w-0 flex-1">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                    Top Source
+                  </span>
+                  <div className="text-2xl font-bold tracking-tight text-[#FAFAFA] truncate">{topSource}</div>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {topSourceCount > 0 ? `${topSourceCount} articles in top topic` : 'Scraped feed volume'}
+                  </p>
+                </div>
+                <div className="w-10 h-10 rounded-lg bg-[#4F46E5]/10 flex items-center justify-center text-[#4F46E5] shrink-0 ml-3">
+                  <Award size={18} />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Last Updated Card */}
+            <Card className="bg-[#18181B] border-[#27272A] hover:border-[#22C55E]/50 transition-all duration-300 shadow-md">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div className="space-y-1 min-w-0">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                    Last Updated
+                  </span>
+                  <div className="text-2xl font-bold tracking-tight text-[#FAFAFA]">{lastSyncTime}</div>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse" />
+                    <span className="text-[10px] text-[#22C55E] font-medium">System Active</span>
+                  </div>
+                </div>
+                <div className="w-10 h-10 rounded-lg bg-[#22C55E]/10 flex items-center justify-center text-[#22C55E] shrink-0 ml-3">
+                  <Clock size={18} />
+                </div>
               </CardContent>
             </Card>
           </div>
+
 
           {/* Chronological Staggered Timeline Section */}
           <Timeline
