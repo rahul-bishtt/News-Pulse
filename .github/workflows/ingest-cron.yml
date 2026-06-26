@@ -13,5 +13,6 @@ jobs:
       - name: Trigger News Pulse Ingestion
         run: |
           curl --fail -X POST "${{ secrets.API_BASE_URL }}/ingest/trigger" \
+            -H "Host: news-pulse.rahulbisht.me" \
             -H "Content-Type: application/json" \
             -d '{"source": "github-actions-cron"}'
