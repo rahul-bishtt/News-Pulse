@@ -30,12 +30,15 @@ export interface Article {
   id: number;
   source: string;
   title: string;
+  summary?: string;
   url: string;
   publishedAt: string;
 }
 
 export interface ClusterDetail extends Cluster {
   articles: Article[];
+  page: number;
+  limit: number;
 }
 
 export interface TimelineData {
@@ -63,8 +66,14 @@ export const getClusters = async (): Promise<Cluster[]> => {
   return response.data;
 };
 
-export const getClusterById = async (id: number): Promise<ClusterDetail> => {
-  const response = await client.get<ClusterDetail>(`/clusters/${id}`);
+export const getClusterById = async (
+  id: number,
+  page = 1,
+  limit = 20,
+): Promise<ClusterDetail> => {
+  const response = await client.get<ClusterDetail>(`/clusters/${id}`, {
+    params: { page, limit },
+  });
   return response.data;
 };
 

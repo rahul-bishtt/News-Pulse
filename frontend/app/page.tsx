@@ -1,86 +1,91 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Timeline from '../components/Timeline';
-import ClusterDetail from '../components/ClusterDetail';
-import SourceFilter from '../components/SourceFilter';
-import RefreshButton from '../components/RefreshButton';
-import { getTimeline, TimelineData } from '../lib/api';
-
-// TODO:
-// Orchestrate dashboard state containing timeline points, selected cluster, and active filters.
-// Fetch chart aggregates from backend on mount and when scraper runs complete.
-// Display status panels during loading or connection errors.
+import React, { useState, useEffect, useCallback } from 'react';
+import { Activity, AlertCircle } from 'lucide-react';
+import Timeline from '@/components/Timeline';
+import ClusterDetail from '@/components/ClusterDetail';
+import SourceFilter from '@/components/SourceFilter';
+import RefreshButton from '@/components/RefreshButton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+import { getTimeline, TimelineData } from '@/lib/api';
 
 export default function Home() {
   const [timelineData, setTimelineData] = useState<TimelineData[]>([]);
   const [selectedClusterId, setSelectedClusterId] = useState<number | null>(null);
+  const [availableSources, setAvailableSources] = useState<string[]>([]);
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadDashboardData = async () => {
-    setLoading(true);
+  /**
+   * background=true → preserve existing data on screen until fetch completes (used by Refresh).
+   * background=false → show skeleton on initial mount only.
+   */
+  const loadDashboardData = useCallback(async (background = false) => {
+    if (!background) setLoading(true);
     setError(null);
     try {
       const data = await getTimeline();
       setTimelineData(data);
-    } catch (err: any) {
-      console.error(err);
-      setError('Failed to fetch timeline data. Please make sure the backend API is running.');
+    } catch {
+      setError('Unable to reach the backend API. Make sure the server is running on port 4000.');
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    loadDashboardData();
   }, []);
 
-  // Unique sources list for filter
-  // Scaffolding uses simple predefined list or extracts from fetched timeline labels
-  const availableSources = ['BBC', 'NPR', 'NYTimes'];
+  useEffect(() => {
+    loadDashboardData(false);
+  }, [loadDashboardData]);
+
+  const handleSelectCluster = (id: number) => {
+    setSelectedClusterId(id);
+    setSelectedSources([]);
+    setAvailableSources([]);
+  };
+
+  const handleSourcesDiscovered = (sources: string[]) => {
+    setAvailableSources(sources);
+  };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 p-8 font-sans">
-      <div className="max-w-6xl mx-auto space-y-8">
-        
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-6 border-b border-slate-800">
-          <div>
-            <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
-              News Pulse
-            </h1>
-            <p className="text-sm text-slate-405 mt-1">
-              Topic-Clustered News Timeline & Ingestion Pipeline
-            </p>
+    <main className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur-sm">
+        <div className="max-w-screen-xl mx-auto px-6 h-14 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <Activity size={18} className="text-primary" />
+            <span className="font-semibold text-sm tracking-tight">News Pulse</span>
+            <Separator orientation="vertical" className="h-4 mx-1" />
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              Topic-clustered news analytics
+            </span>
           </div>
-          <RefreshButton onComplete={loadDashboardData} />
+          <RefreshButton onComplete={() => loadDashboardData(true)} />
         </div>
+      </header>
 
+      {/* Main content */}
+      <div className="max-w-screen-xl mx-auto px-6 py-6 space-y-4">
+        {/* Error banner */}
         {error && (
-          <div className="bg-red-950/50 border border-red-800 p-4 rounded-xl text-red-300 text-sm">
-            <p>{error}</p>
-          </div>
+          <Alert variant="destructive">
+            <AlertCircle size={15} />
+            <AlertDescription className="text-sm">{error}</AlertDescription>
+          </Alert>
         )}
 
-        {/* Dashboard Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Main Visualizations (Left/Center) */}
-          <div className="lg:col-span-2 space-y-8">
-            {loading ? (
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-12 text-center text-slate-400">
-                <p className="animate-pulse">Loading dashboard timeline...</p>
-              </div>
-            ) : (
-              <Timeline
-                data={timelineData}
-                onSelectCluster={setSelectedClusterId}
-                selectedClusterId={selectedClusterId}
-              />
-            )}
-
+        {/* Dashboard grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Left column: Timeline + Source filter */}
+          <div className="lg:col-span-2 space-y-4">
+            <Timeline
+              data={timelineData}
+              onSelectCluster={handleSelectCluster}
+              selectedClusterId={selectedClusterId}
+              loading={loading}
+            />
             <SourceFilter
               sources={availableSources}
               selectedSources={selectedSources}
@@ -88,14 +93,14 @@ export default function Home() {
             />
           </div>
 
-          {/* Details Panel (Right) */}
-          <div className="lg:col-span-1 h-full">
+          {/* Right column: Cluster detail */}
+          <div className="lg:col-span-1">
             <ClusterDetail
               clusterId={selectedClusterId}
               selectedSources={selectedSources}
+              onSourcesDiscovered={handleSourcesDiscovered}
             />
           </div>
-          
         </div>
       </div>
     </main>

@@ -1,11 +1,10 @@
 'use client';
 
 import React from 'react';
-
-// TODO:
-// Receive list of available sources (e.g. ['BBC', 'NPR', 'NYTimes']) as props.
-// Manage multi-select checkboxes or pill button toggles.
-// Propagate selected source state changes upward to trigger timeline and list redraws.
+import { Filter } from 'lucide-react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 interface SourceFilterProps {
   sources: string[];
@@ -26,30 +25,58 @@ export const SourceFilter: React.FC<SourceFilterProps> = ({
     }
   };
 
+  const activeCount = selectedSources.length;
+
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-xl">
-      <h3 className="text-sm font-semibold text-slate-450 uppercase tracking-wider mb-3">
-        Filter Sources
-      </h3>
-      <div className="flex flex-wrap gap-2">
-        {sources.map((source) => {
-          const isSelected = selectedSources.includes(source);
-          return (
-            <button
-              key={source}
-              onClick={() => toggleSource(source)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                isSelected
-                  ? 'bg-emerald-600 border-emerald-500 text-white'
-                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-750'
-              }`}
+    <Card>
+      <CardHeader className="pb-3 pt-4 px-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <Filter size={13} className="text-muted-foreground" />
+            Sources
+          </div>
+          {activeCount > 0 && sources.length > 0 && (
+            <span className="text-xs text-muted-foreground">
+              {activeCount} of {sources.length} active
+            </span>
+          )}
+        </div>
+      </CardHeader>
+      <Separator />
+      <CardContent className="pt-3 pb-4 px-4">
+        {sources.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            Select a topic to filter by source.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {/* "All" pill */}
+            <Button
+              variant={activeCount === 0 ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => onChange([])}
+              className="h-7 px-3 text-xs rounded-full"
             >
-              {source}
-            </button>
-          );
-        })}
-      </div>
-    </div>
+              All
+            </Button>
+            {sources.map((source) => {
+              const isActive = selectedSources.includes(source);
+              return (
+                <Button
+                  key={source}
+                  variant={isActive ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => toggleSource(source)}
+                  className="h-7 px-3 text-xs rounded-full transition-all duration-150"
+                >
+                  {source}
+                </Button>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
