@@ -48,6 +48,7 @@ export interface TimelineData {
   endTime: string;
   articleCount: number;
   intensity: number;
+  sources?: string[];
 }
 
 export interface IngestTriggerResponse {
