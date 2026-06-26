@@ -6,6 +6,7 @@
 CREATE TABLE IF NOT EXISTS clusters (
   id            SERIAL PRIMARY KEY,
   label         TEXT NOT NULL,
+  keywords      TEXT[] NOT NULL DEFAULT '{}',
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -24,3 +25,7 @@ CREATE TABLE IF NOT EXISTS articles (
 
 CREATE INDEX IF NOT EXISTS idx_articles_cluster_id ON articles(cluster_id);
 CREATE INDEX IF NOT EXISTS idx_articles_published_at ON articles(published_at);
+
+-- Migration statement to ensure existing DB gains the column
+ALTER TABLE clusters ADD COLUMN IF NOT EXISTS keywords TEXT[] NOT NULL DEFAULT '{}';
+

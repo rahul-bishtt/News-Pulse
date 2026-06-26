@@ -86,7 +86,27 @@ def run_pipeline(mode: str):
             print(f"[{idx}/{articles_fetched}] Error: Failed to process article: {e}")
             # Do not stop the pipeline; proceed to next article
 
-    # 4. Print metrics summary
+
+    # 4. Trigger automatic topic clustering
+    print("\nTriggering topic clustering...")
+    try:
+        from cluster import run_incremental_clustering, run_full_clustering
+        from db import connect
+        cluster_conn = connect()
+        try:
+            if mode == "full":
+                clustering_results = run_full_clustering(cluster_conn)
+                print(f"Full clustering complete: Re-clustered all database articles.")
+            else:
+                clustering_results = run_incremental_clustering(cluster_conn)
+                print(f"Incremental clustering complete: Grouped {clustering_results['total_clustered']} new articles.")
+            print(f" -> Created {clustering_results['new_created']} new clusters, reused {clustering_results['existing_reused']} existing ones.")
+        finally:
+            cluster_conn.close()
+    except Exception as e:
+        print(f"Warning: Automatic topic clustering step failed: {e}")
+
+    # 5. Print metrics summary
     duration = time.time() - start_time
     print(f"\n==================================================")
     print(f"News Pulse Ingestion Pipeline Summary")

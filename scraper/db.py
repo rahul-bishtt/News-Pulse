@@ -163,12 +163,13 @@ def insert_article(article: Dict[str, Any], cursor: psycopg2.extensions.cursor =
             time.sleep(delay)
             delay *= 2.0
 
-def insert_cluster(label: str, cursor: psycopg2.extensions.cursor = None) -> int:
+def insert_cluster(label: str, keywords: List[str] = None, cursor: psycopg2.extensions.cursor = None) -> int:
     """
-    Inserts a new cluster record and returns its generated ID.
+    Inserts a new cluster record with representative keywords and returns its generated ID.
 
     Args:
         label (str): The cluster label name.
+        keywords (List[str], optional): Representative keywords. Defaults to None.
         cursor (psycopg2.extensions.cursor, optional): Active transaction cursor.
 
     Returns:
@@ -177,10 +178,13 @@ def insert_cluster(label: str, cursor: psycopg2.extensions.cursor = None) -> int
     Errors:
         psycopg2.Error: On insertion or connection failure.
     """
-    sql = "INSERT INTO clusters (label) VALUES (%s) RETURNING id;"
+    if keywords is None:
+        keywords = []
+    sql = "INSERT INTO clusters (label, keywords) VALUES (%s, %s) RETURNING id;"
+    params = (label, keywords)
     
     if cursor:
-        cursor.execute(sql, (label,))
+        cursor.execute(sql, params)
         return cursor.fetchone()["id"]
 
     max_retries = 3
@@ -189,12 +193,47 @@ def insert_cluster(label: str, cursor: psycopg2.extensions.cursor = None) -> int
         try:
             with connect() as conn:
                 with transaction(conn) as cur:
-                    cur.execute(sql, (label,))
+                    cur.execute(sql, params)
                     return cur.fetchone()["id"]
         except psycopg2.Error as e:
             if attempt == max_retries:
                 raise e
             print(f"Warning: insert_cluster query failed (attempt {attempt}): {e}. Retrying in {delay}s...")
+            time.sleep(delay)
+            delay *= 2.0
+
+def update_cluster(cluster_id: int, label: str, keywords: List[str], cursor: psycopg2.extensions.cursor = None) -> None:
+    """
+    Updates an existing cluster's label and representative keywords.
+
+    Args:
+        cluster_id (int): Target cluster ID.
+        label (str): New human-readable label.
+        keywords (List[str]): Updated list of representative keywords.
+        cursor (psycopg2.extensions.cursor, optional): Active transaction cursor.
+
+    Errors:
+        psycopg2.Error: On update or connection failure.
+    """
+    sql = "UPDATE clusters SET label = %s, keywords = %s, updated_at = now() WHERE id = %s;"
+    params = (label, keywords, cluster_id)
+    
+    if cursor:
+        cursor.execute(sql, params)
+        return
+
+    max_retries = 3
+    delay = 1.0
+    for attempt in range(1, max_retries + 1):
+        try:
+            with connect() as conn:
+                with transaction(conn) as cur:
+                    cur.execute(sql, params)
+                    return
+        except psycopg2.Error as e:
+            if attempt == max_retries:
+                raise e
+            print(f"Warning: update_cluster query failed (attempt {attempt}): {e}. Retrying in {delay}s...")
             time.sleep(delay)
             delay *= 2.0
 
@@ -217,7 +256,8 @@ def assign_cluster(article_url: str, cluster_id: int, cursor: psycopg2.extension
     
     if cursor:
         cursor.execute(sql, (cluster_id, article_url))
-        return cursor.fetchone() is not None
+        row = cursor.fetchone()
+        return row is not None
 
     max_retries = 3
     delay = 1.0
@@ -226,7 +266,8 @@ def assign_cluster(article_url: str, cluster_id: int, cursor: psycopg2.extension
             with connect() as conn:
                 with transaction(conn) as cur:
                     cur.execute(sql, (cluster_id, article_url))
-                    return cur.fetchone() is not None
+                    row = cur.fetchone()
+                    return row is not None
         except psycopg2.Error as e:
             if attempt == max_retries:
                 raise e
@@ -236,18 +277,18 @@ def assign_cluster(article_url: str, cluster_id: int, cursor: psycopg2.extension
 
 def get_existing_clusters(cursor: psycopg2.extensions.cursor = None) -> List[Dict[str, Any]]:
     """
-    Retrieves all cluster records currently stored in the database.
+    Retrieves all cluster records currently stored in the database, including keywords.
 
     Args:
         cursor (psycopg2.extensions.cursor, optional): Active transaction cursor.
 
     Returns:
-        List[Dict[str, Any]]: List of dictionary items representing clusters (id and label).
+        List[Dict[str, Any]]: List of dictionary items representing clusters (id, label, and keywords).
 
     Errors:
         psycopg2.Error: On database select query failure.
     """
-    sql = "SELECT id, label FROM clusters ORDER BY id;"
+    sql = "SELECT id, label, keywords FROM clusters ORDER BY id;"
     
     if cursor:
         cursor.execute(sql)
@@ -265,6 +306,124 @@ def get_existing_clusters(cursor: psycopg2.extensions.cursor = None) -> List[Dic
             if attempt == max_retries:
                 raise e
             print(f"Warning: get_existing_clusters query failed (attempt {attempt}): {e}. Retrying in {delay}s...")
+            time.sleep(delay)
+            delay *= 2.0
+
+def get_all_articles(cursor: psycopg2.extensions.cursor = None) -> List[Dict[str, Any]]:
+    """
+    Retrieves all article records currently in the database.
+
+    Args:
+        cursor (psycopg2.extensions.cursor, optional): Active transaction cursor.
+
+    Returns:
+        List[Dict[str, Any]]: List of article dictionaries.
+    """
+    sql = "SELECT id, source, title, summary, body_text, url, published_at, cluster_id FROM articles ORDER BY id;"
+    
+    if cursor:
+        cursor.execute(sql)
+        return list(cursor.fetchall())
+
+    max_retries = 3
+    delay = 1.0
+    for attempt in range(1, max_retries + 1):
+        try:
+            with connect() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute(sql)
+                    return list(cur.fetchall())
+        except psycopg2.Error as e:
+            if attempt == max_retries:
+                raise e
+            print(f"Warning: get_all_articles query failed (attempt {attempt}): {e}. Retrying in {delay}s...")
+            time.sleep(delay)
+            delay *= 2.0
+
+def get_unclustered_articles(cursor: psycopg2.extensions.cursor = None) -> List[Dict[str, Any]]:
+    """
+    Retrieves all article records currently lacking a cluster ID.
+
+    Args:
+        cursor (psycopg2.extensions.cursor, optional): Active transaction cursor.
+
+    Returns:
+        List[Dict[str, Any]]: List of unclustered article dictionaries.
+    """
+    sql = "SELECT id, source, title, summary, body_text, url, published_at, cluster_id FROM articles WHERE cluster_id IS NULL ORDER BY id;"
+    
+    if cursor:
+        cursor.execute(sql)
+        return list(cursor.fetchall())
+
+    max_retries = 3
+    delay = 1.0
+    for attempt in range(1, max_retries + 1):
+        try:
+            with connect() as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute(sql)
+                    return list(cur.fetchall())
+        except psycopg2.Error as e:
+            if attempt == max_retries:
+                raise e
+            print(f"Warning: get_unclustered_articles query failed (attempt {attempt}): {e}. Retrying in {delay}s...")
+            time.sleep(delay)
+            delay *= 2.0
+
+def clear_all_article_assignments(cursor: psycopg2.extensions.cursor = None) -> None:
+    """
+    Removes all cluster assignments, setting cluster_id to NULL on all articles.
+
+    Args:
+        cursor (psycopg2.extensions.cursor, optional): Active transaction cursor.
+    """
+    sql = "UPDATE articles SET cluster_id = NULL;"
+    
+    if cursor:
+        cursor.execute(sql)
+        return
+
+    max_retries = 3
+    delay = 1.0
+    for attempt in range(1, max_retries + 1):
+        try:
+            with connect() as conn:
+                with transaction(conn) as cur:
+                    cur.execute(sql)
+                    return
+        except psycopg2.Error as e:
+            if attempt == max_retries:
+                raise e
+            print(f"Warning: clear_all_article_assignments query failed (attempt {attempt}): {e}. Retrying in {delay}s...")
+            time.sleep(delay)
+            delay *= 2.0
+
+def delete_all_clusters(cursor: psycopg2.extensions.cursor = None) -> None:
+    """
+    Deletes all clusters from the database.
+
+    Args:
+        cursor (psycopg2.extensions.cursor, optional): Active transaction cursor.
+    """
+    sql = "DELETE FROM clusters;"
+    
+    if cursor:
+        cursor.execute(sql)
+        return
+
+    max_retries = 3
+    delay = 1.0
+    for attempt in range(1, max_retries + 1):
+        try:
+            with connect() as conn:
+                with transaction(conn) as cur:
+                    cur.execute(sql)
+                    return
+        except psycopg2.Error as e:
+            if attempt == max_retries:
+                raise e
+            print(f"Warning: delete_all_clusters query failed (attempt {attempt}): {e}. Retrying in {delay}s...")
             time.sleep(delay)
             delay *= 2.0
 

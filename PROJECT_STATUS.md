@@ -9,9 +9,9 @@
 - [x] Initial commit completed
 - [x] Database implementation
 - [x] RSS Ingestion & Article Extraction
+- [x] Topic Clustering Engine
 
 Pending:
-- Clustering
 - REST API implementation
 - Timeline UI
 - Deployment

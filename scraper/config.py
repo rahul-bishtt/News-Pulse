@@ -27,5 +27,6 @@ DEFAULT_FEEDS = [
 ]
 
 # Clustering parameters
+CLUSTER_THRESHOLD = int(os.getenv("CLUSTER_THRESHOLD", "4"))
 SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.3"))
 MAX_FEATURES = int(os.getenv("MAX_FEATURES", "5000"))
