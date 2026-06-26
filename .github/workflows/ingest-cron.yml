@@ -12,6 +12,6 @@ jobs:
     steps:
       - name: Trigger News Pulse Ingestion
         run: |
-          curl -X POST "${{ secrets.API_BASE_URL }}/ingest/trigger" \
+          curl --fail -X POST "${{ secrets.API_BASE_URL }}/ingest/trigger" \
             -H "Content-Type: application/json" \
             -d '{"source": "github-actions-cron"}'
