@@ -1,12 +1,12 @@
 # Project Status
 
-- [ ] Project scaffold created
-- [ ] Frontend initialized
-- [ ] Backend initialized
-- [ ] Python scraper initialized
-- [ ] Dependencies installed
+- [x] Project scaffold created
+- [x] Frontend initialized
+- [x] Backend initialized
+- [x] Python scraper initialized
+- [x] Dependencies installed
 - [x] Git repository initialized
-- [ ] Initial commit completed
+- [x] Initial commit completed
 
 Pending:
 - Database implementation
