@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { ExternalLink, Clock, MousePointerClick, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ExternalLink, Clock, Sparkles, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import { getClusterById, ClusterDetail as ClusterDetailType, Article } from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,22 +15,13 @@ const PAGE_LIMIT = 20;
 interface ClusterDetailProps {
   clusterId: number | null;
   selectedSources: string[];
+  onChangeSources: (sources: string[]) => void;
   onSourcesDiscovered?: (sources: string[]) => void;
-}
-
-function formatTime(iso: string): string {
-  return new Intl.DateTimeFormat('en', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date(iso));
 }
 
 function ArticleCardSkeleton() {
   return (
-    <div className="space-y-2 p-4 rounded-lg border border-border">
+    <div className="space-y-2 p-4 rounded-lg border border-border bg-card">
       <div className="flex items-center gap-2">
         <Skeleton className="h-5 w-12 rounded-full" />
         <Skeleton className="h-4 w-28 rounded" />
@@ -45,6 +36,7 @@ function ArticleCardSkeleton() {
 export const ClusterDetail: React.FC<ClusterDetailProps> = ({
   clusterId,
   selectedSources,
+  onChangeSources,
   onSourcesDiscovered,
 }) => {
   const [detail, setDetail] = useState<ClusterDetailType | null>(null);
@@ -52,6 +44,7 @@ export const ClusterDetail: React.FC<ClusterDetailProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [articles, setArticles] = useState<Article[]>([]);
+  const [availableSources, setAvailableSources] = useState<string[]>([]);
 
   useEffect(() => {
     if (!clusterId) return;
@@ -65,8 +58,9 @@ export const ClusterDetail: React.FC<ClusterDetailProps> = ({
         if (isMounted) {
           setDetail(data);
           setArticles(data.articles);
+          const sources = [...new Set(data.articles.map((a) => a.source))];
+          setAvailableSources(sources);
           if (onSourcesDiscovered) {
-            const sources = [...new Set(data.articles.map((a) => a.source))];
             onSourcesDiscovered(sources);
           }
         }
@@ -103,36 +97,47 @@ export const ClusterDetail: React.FC<ClusterDetailProps> = ({
     }
   };
 
+  const toggleSource = (src: string) => {
+    if (selectedSources.includes(src)) {
+      onChangeSources(selectedSources.filter((s) => s !== src));
+    } else {
+      onChangeSources([...selectedSources, src]);
+    }
+  };
+
   const filteredArticles = selectedSources.length
     ? articles.filter((a) => selectedSources.includes(a.source))
     : articles;
 
-  // No cluster selected
+  // No Selection Empty State
   if (!clusterId) {
     return (
-      <Card className="h-full flex flex-col">
-        <CardContent className="flex-1 flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
-          <MousePointerClick size={36} strokeWidth={1.5} />
-          <p className="text-sm text-center leading-relaxed">
-            Click a topic on the timeline<br />to explore its articles.
+      <Card className="h-[480px] flex flex-col justify-center items-center border-dashed border-2 border-border p-6 bg-card/20">
+        <div className="flex flex-col items-center max-w-[280px] text-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+            <Sparkles size={20} />
+          </div>
+          <h3 className="text-sm font-semibold tracking-tight text-foreground">Select a News Topic</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Click on a timeline track or select a ranked topic from the trending panel to load articles and analyze sources.
           </p>
-        </CardContent>
+        </div>
       </Card>
     );
   }
 
-  // Loading skeleton
+  // Loading skeleton state
   if (loading && !detail) {
     return (
-      <Card className="h-full flex flex-col">
-        <CardHeader className="pb-3">
+      <Card className="h-[480px] flex flex-col border-border">
+        <CardHeader className="pb-3 shrink-0">
           <Skeleton className="h-4 w-16 rounded-full" />
           <Skeleton className="h-6 w-3/4 rounded mt-2" />
           <Skeleton className="h-4 w-1/2 rounded mt-1" />
         </CardHeader>
         <Separator />
-        <CardContent className="pt-4 space-y-3">
-          {[...Array(4)].map((_, i) => (
+        <CardContent className="pt-4 space-y-3 flex-1 overflow-hidden">
+          {[...Array(2)].map((_, i) => (
             <ArticleCardSkeleton key={i} />
           ))}
         </CardContent>
@@ -142,10 +147,8 @@ export const ClusterDetail: React.FC<ClusterDetailProps> = ({
 
   if (error) {
     return (
-      <Card className="h-full flex flex-col">
-        <CardContent className="flex-1 flex items-center justify-center py-16 text-destructive text-sm">
-          {error}
-        </CardContent>
+      <Card className="h-[480px] flex flex-col justify-center items-center border-border">
+        <p className="text-xs text-destructive">{error}</p>
       </Card>
     );
   }
@@ -153,27 +156,60 @@ export const ClusterDetail: React.FC<ClusterDetailProps> = ({
   if (!detail) return null;
 
   return (
-    <Card className="flex flex-col lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)]">
+    <Card className="flex flex-col h-[480px] border-border">
       <CardHeader className="pb-3 shrink-0">
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs font-medium">
-            Cluster
+        <div className="flex items-center justify-between gap-2">
+          <Badge variant="outline" className="text-[10px] font-medium tracking-wide uppercase px-2 py-0.5">
+            Topic Focus
           </Badge>
+          <span className="text-[10px] text-muted-foreground font-medium">
+            {detail.articleCount} articles total
+          </span>
         </div>
-        <CardTitle className="text-lg leading-snug mt-1">{detail.label}</CardTitle>
-        <CardDescription>
-          {detail.articleCount} article{detail.articleCount !== 1 ? 's' : ''}
-          {detail.startTime
-            ? ` · ${formatTime(detail.startTime)} – ${formatTime(detail.endTime)}`
-            : ''}
+        <CardTitle className="text-sm font-semibold leading-snug mt-1 truncate">{detail.label}</CardTitle>
+        <CardDescription className="text-[11px] font-medium">
+          Active span: {new Date(detail.startTime).toLocaleDateString()} – {new Date(detail.endTime).toLocaleDateString()}
         </CardDescription>
-      </CardHeader>
-      <Separator className="shrink-0" />
 
-      <ScrollArea className="flex-1 min-h-0">
-        <CardContent className="pt-4 pb-2 space-y-2">
+        {/* Source Inline Filters inside Card Header */}
+        {availableSources.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-1.5 pt-2 border-t border-border/60">
+            <span className="text-[10px] text-muted-foreground mr-1 flex items-center gap-1">
+              <Filter size={10} /> Filters:
+            </span>
+            <Button
+              variant={selectedSources.length === 0 ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => onChangeSources([])}
+              className="h-5 px-2 text-[10px] rounded-full"
+            >
+              All
+            </Button>
+            {availableSources.map((src) => {
+              const active = selectedSources.includes(src);
+              return (
+                <Button
+                  key={src}
+                  variant={active ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => toggleSource(src)}
+                  className="h-5 px-2 text-[10px] rounded-full"
+                >
+                  {src}
+                </Button>
+              );
+            })}
+          </div>
+        )}
+      </CardHeader>
+      
+      <Separator />
+
+      {/* Articles List */}
+      <ScrollArea className="flex-1 min-h-0 bg-secondary/15">
+        <CardContent className="p-3 space-y-2">
           {filteredArticles.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">
+            <p className="text-xs text-muted-foreground text-center py-8">
               No articles match the selected source filters.
             </p>
           ) : (
@@ -184,28 +220,28 @@ export const ClusterDetail: React.FC<ClusterDetailProps> = ({
         </CardContent>
       </ScrollArea>
 
-      {/* Pagination */}
-      <div className="shrink-0 border-t border-border px-4 py-3 flex items-center justify-between">
+      {/* Pagination Footer */}
+      <div className="shrink-0 border-t border-border px-3 py-2.5 flex items-center justify-between bg-card">
         <Button
           variant="outline"
           size="sm"
           onClick={() => handlePageChange(page - 1)}
           disabled={page <= 1 || loading}
-          className="h-8 px-3 text-xs"
+          className="h-7 px-2 text-[10px]"
         >
-          <ChevronLeft size={13} />
+          <ChevronLeft size={12} className="mr-0.5" />
           Prev
         </Button>
-        <span className="text-xs text-muted-foreground">Page {page}</span>
+        <span className="text-[11px] font-medium text-muted-foreground">Page {page}</span>
         <Button
           variant="outline"
           size="sm"
           onClick={() => handlePageChange(page + 1)}
           disabled={articles.length < PAGE_LIMIT || loading}
-          className="h-8 px-3 text-xs"
+          className="h-7 px-2 text-[10px]"
         >
           Next
-          <ChevronRight size={13} />
+          <ChevronRight size={12} className="ml-0.5" />
         </Button>
       </div>
     </Card>
@@ -214,14 +250,14 @@ export const ClusterDetail: React.FC<ClusterDetailProps> = ({
 
 function ArticleCard({ article }: { article: Article }) {
   return (
-    <div className="group rounded-lg border border-border p-4 hover:bg-zinc-900 transition-colors duration-150">
-      <div className="flex items-start justify-between gap-2 mb-2">
+    <div className="group rounded-lg border border-border bg-card p-3 hover:bg-secondary/40 transition-all duration-150">
+      <div className="flex items-start justify-between gap-2 mb-1.5">
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="secondary" className="text-[10px] px-2 py-0.5 font-medium">
+          <Badge variant="secondary" className="text-[9px] px-1.5 py-0 font-medium">
             {article.source}
           </Badge>
-          <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-            <Clock size={10} />
+          <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <Clock size={9} />
             {new Intl.DateTimeFormat('en', {
               month: 'short',
               day: 'numeric',
@@ -235,21 +271,21 @@ function ArticleCard({ article }: { article: Article }) {
           target="_blank"
           rel="noopener noreferrer"
           className="shrink-0 text-muted-foreground hover:text-primary transition-colors duration-150"
-          aria-label="Open article"
+          aria-label="Open article link"
         >
-          <ExternalLink size={13} />
+          <ExternalLink size={12} />
         </a>
       </div>
       <a
         href={article.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="block text-sm font-medium text-foreground hover:text-primary transition-colors duration-150 leading-snug mb-1.5"
+        className="block text-xs font-semibold text-foreground hover:text-primary transition-colors duration-150 leading-snug mb-1"
       >
         {article.title}
       </a>
       {article.summary && (
-        <p className="text-[12px] text-muted-foreground leading-relaxed line-clamp-2">
+        <p className="text-[11px] text-muted-foreground leading-normal line-clamp-2">
           {article.summary}
         </p>
       )}
