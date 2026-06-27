@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { CalendarDays, AlertCircle, Info } from 'lucide-react';
 import { TimelineData } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -118,18 +118,18 @@ export const Timeline: React.FC<TimelineProps> = ({
   const chartWidth = 1000; // Fixed coordinate system for viewBox scaling
 
   // Helper to map time to X coordinate
-  const getX = (isoString: string) => {
+  const getX = useCallback((isoString: string) => {
     const time = new Date(isoString).getTime();
     const ratio = (time - domainMin) / domainSpan;
     return paddingLeft + ratio * (chartWidth - paddingLeft - paddingRight);
-  };
+  }, [domainMin, domainSpan, paddingLeft, paddingRight, chartWidth]);
 
   // Helper to map lane index to Y coordinate
-  const getY = (topicId: number) => {
+  const getY = useCallback((topicId: number) => {
     const laneIndex = topicLanes[topicId] ?? 0;
     const wrappedIndex = laneIndex % activeLanesCount;
     return paddingTop + wrappedIndex * (chartHeight / Math.max(activeLanesCount - 1, 1));
-  };
+  }, [topicLanes, activeLanesCount, paddingTop, chartHeight]);
 
   // Generate Chronological X-axis ticks
   const ticks = useMemo(() => {
@@ -141,6 +141,71 @@ export const Timeline: React.FC<TimelineProps> = ({
     }
     return items;
   }, [domainMin, domainSpan]);
+
+  // Helper to determine if two topics are related semantically
+  const areTopicsRelated = (a: TimelineData, b: TimelineData) => {
+    const wordsA = a.label.toLowerCase().split(/[\s,.:;'"()\[\]{}!@#$%^&*\-_=+|\\]+/).filter(w => w.length > 3);
+    const wordsB = b.label.toLowerCase().split(/[\s,.:;'"()\[\]{}!@#$%^&*\-_=+|\\]+/).filter(w => w.length > 3);
+    return wordsA.some(w => wordsB.includes(w));
+  };
+
+  // Generate connecting lines between consecutive nodes in each lane
+  const connectingLines = useMemo(() => {
+    const linesList: Array<{
+      key: string;
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+      related: boolean;
+      opacity: number;
+    }> = [];
+
+    // Group displayed data by lane
+    const laneGroups: Record<number, TimelineData[]> = {};
+    displayedData.forEach((topic) => {
+      const laneIdx = (topicLanes[topic.id] ?? 0) % activeLanesCount;
+      if (!laneGroups[laneIdx]) {
+        laneGroups[laneIdx] = [];
+      }
+      laneGroups[laneIdx].push(topic);
+    });
+
+    // For each lane group, sort chronologically and create connections
+    Object.values(laneGroups).forEach((topics) => {
+      const sortedTopics = [...topics].sort(
+        (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      );
+
+      for (let i = 0; i < sortedTopics.length - 1; i++) {
+        const current = sortedTopics[i];
+        const next = sortedTopics[i + 1];
+        
+        const x1 = getX(current.endTime);
+        const x2 = getX(next.startTime);
+        const y = getY(current.id);
+
+        const related = areTopicsRelated(current, next);
+
+        // Opacity reflects overall state: dimmer if searching/filtering is active
+        const matchesCurrent = current.label.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesNext = next.label.toLowerCase().includes(searchQuery.toLowerCase());
+        const searchDimmed = searchQuery && (!matchesCurrent || !matchesNext);
+
+        linesList.push({
+          key: `connect-${current.id}-${next.id}`,
+          x1,
+          y1: y,
+          x2,
+          y2: y,
+          related,
+          opacity: searchDimmed ? 0.08 : related ? 0.45 : 0.18,
+        });
+      }
+    });
+
+    return linesList;
+  }, [displayedData, topicLanes, activeLanesCount, searchQuery, getX, getY]);
 
   // Handle hover interactions
   const handleMouseEnter = (topic: TimelineData, event: React.MouseEvent<SVGGElement>) => {
@@ -323,13 +388,13 @@ export const Timeline: React.FC<TimelineProps> = ({
             {ticks.map((tick, i) => {
               const xVal = paddingLeft + (i / (ticks.length - 1)) * (chartWidth - paddingLeft - paddingRight);
               return (
-                <g key={`grid-${i}`} className="opacity-45">
+                <g key={`grid-${i}`} className="opacity-70">
                   <line
                     x1={xVal}
                     y1={paddingTop - 10}
                     x2={xVal}
                     y2={svgHeight - paddingBottom + 10}
-                    stroke="#27272A"
+                    stroke="#3F3F46"
                     strokeWidth={1}
                     strokeDasharray="4 4"
                   />
@@ -352,7 +417,7 @@ export const Timeline: React.FC<TimelineProps> = ({
               y1={svgHeight - paddingBottom + 10}
               x2={chartWidth - paddingRight + 20}
               y2={svgHeight - paddingBottom + 10}
-              stroke="#27272A"
+              stroke="#3F3F46"
               strokeWidth={1.5}
             />
 
@@ -366,13 +431,29 @@ export const Timeline: React.FC<TimelineProps> = ({
                   y1={yVal}
                   x2={chartWidth - paddingRight + 20}
                   y2={yVal}
-                  stroke="#27272A"
+                  stroke="#3F3F46"
                   strokeWidth={1}
                   strokeDasharray="2 6"
-                  opacity={0.35}
+                  opacity={0.55}
                 />
               );
             })}
+
+            {/* Chronological Connecting Lines */}
+            {connectingLines.map((line) => (
+              <line
+                key={line.key}
+                x1={line.x1}
+                y1={line.y1}
+                x2={line.x2}
+                y2={line.y2}
+                stroke={line.related ? '#6366F1' : '#3F3F46'}
+                strokeWidth={line.related ? 1.5 : 1}
+                strokeDasharray={line.related ? undefined : '3 3'}
+                opacity={line.opacity}
+                className="transition-all duration-150 ease-out"
+              />
+            ))}
 
             {/* Selected / Hovered Track Highlight Strips */}
             {hoveredTopic && (
@@ -387,7 +468,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                 stroke="#4F46E5"
                 strokeOpacity={0.12}
                 strokeWidth={1}
-                className="pointer-events-none transition-all duration-200"
+                className="pointer-events-none transition-all duration-150 ease-out"
               />
             )}
             {selectedClusterId !== null && (
@@ -402,7 +483,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                 stroke="#4F46E5"
                 strokeOpacity={0.3}
                 strokeWidth={1.5}
-                className="pointer-events-none transition-all duration-200"
+                className="pointer-events-none transition-all duration-150 ease-out"
               />
             )}
 
@@ -416,19 +497,23 @@ export const Timeline: React.FC<TimelineProps> = ({
               const isSelected = selectedClusterId === topic.id;
               const isHovered = hoveredTopic?.id === topic.id;
 
-              // Calculate radius based on volume: min 6px, max 20px
+              // Calculate radius based on volume: min 9.2px, max 30px (15% larger)
               const maxCountInBatch = Math.max(...data.map((t) => t.articleCount), 1);
-              const rVal = 8 + Math.sqrt(topic.articleCount / maxCountInBatch) * 18;
+              const rVal = 9.2 + Math.sqrt(topic.articleCount / maxCountInBatch) * 20.7;
 
               // Opacity matches intensity (faded if search active and not matching)
               const matchesSearch = topic.label.toLowerCase().includes(searchQuery.toLowerCase());
               const baseOpacity = 0.4 + topic.intensity * 0.6;
-              const opacity = searchQuery ? (matchesSearch ? 1.0 : 0.15) : (isSelected || isHovered ? 1.0 : baseOpacity);
+              const isAnyActive = selectedClusterId !== null || hoveredTopic !== null;
+              const isActiveNode = isSelected || isHovered;
+              const opacity = searchQuery
+                ? (matchesSearch ? 1.0 : 0.15)
+                : (isActiveNode ? 1.0 : (isAnyActive ? 0.25 : baseOpacity));
 
               return (
                 <g
                   key={topic.id}
-                  className="cursor-pointer transition-all duration-300"
+                  className="cursor-pointer transition-all duration-150 ease-out"
                   onClick={() => onSelectCluster(topic.id)}
                   onMouseEnter={(e) => handleMouseEnter(topic, e)}
                   onMouseMove={handleMouseMove}
@@ -478,7 +563,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                     stroke={isSelected || isHovered ? '#818CF8' : '#27272A'}
                     strokeWidth={isSelected || isHovered ? 3.5 : 2}
                     strokeLinecap="round"
-                    className="transition-all duration-200"
+                    className="transition-all duration-150 ease-out"
                   />
 
                   {/* Midpoint connector line down to chronological axis */}
@@ -533,20 +618,20 @@ export const Timeline: React.FC<TimelineProps> = ({
                     fill={isSelected || isHovered ? 'url(#activeGrad)' : 'url(#inactiveGrad)'}
                     stroke={isSelected ? '#FAFAFA' : isHovered ? '#818CF8' : '#27272A'}
                     strokeWidth={isSelected ? 2 : 1.2}
-                    filter={isSelected || isHovered ? 'url(#nodeGlow)' : undefined}
-                    className="transition-all duration-200"
+                    filter={isSelected ? 'url(#nodeGlow)' : undefined}
+                    className="transition-all duration-150 ease-out"
                   />
 
                   {/* Text Label Backdrop Capsule (for readability) */}
                   {(isSelected || isHovered || topic.articleCount > maxCountInBatch * 0.25) && (
-                    <g className="transition-all duration-200">
+                    <g className="transition-all duration-150 ease-out">
                       {/* Dynamic label text */}
                       <text
                         x={xMid}
-                        y={yVal - rVal - 8}
+                        y={yVal - rVal - 12}
                         textAnchor="middle"
-                        fill={isSelected ? '#FAFAFA' : isHovered ? '#818CF8' : '#A1A1AA'}
-                        className={`text-[11px] ${isSelected ? 'font-bold' : 'font-medium'} tracking-wide`}
+                        fill={isSelected ? '#FAFAFA' : isHovered ? '#A5B4FC' : '#E4E4E7'}
+                        className={`text-xs ${isSelected ? 'font-bold' : 'font-semibold'} tracking-wide`}
                       >
                         {topic.label.length > 26 ? `${topic.label.slice(0, 24)}...` : topic.label}
                       </text>
