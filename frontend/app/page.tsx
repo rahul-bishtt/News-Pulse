@@ -344,7 +344,10 @@ export default function Home() {
           {/* KPI Dashboard Overview Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Total Topics Card */}
-            <Card className="bg-[#18181B] border-[#27272A] rounded-xl hover:border-[#4F46E5] hover:shadow-lg hover:shadow-[#4F46E5]/10 transform transition-all duration-200 hover:-translate-y-[2px] cursor-pointer shadow-md min-h-[160px] flex items-center">
+            <Card
+              className="bg-[#18181B] border-[#27272A] rounded-xl hover:border-[#4F46E5] hover:shadow-lg hover:shadow-[#4F46E5]/10 hover:-translate-y-[2px] cursor-pointer shadow-md min-h-[160px] flex items-center"
+              style={{ transition: 'transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease' }}
+            >
               <CardContent className="p-8 flex items-center justify-between w-full">
                 <div className="space-y-2 min-w-0">
                   <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">
@@ -364,7 +367,10 @@ export default function Home() {
             </Card>
 
             {/* Total Articles Card */}
-            <Card className="bg-[#18181B] border-[#27272A] rounded-xl hover:border-[#4F46E5] hover:shadow-lg hover:shadow-[#4F46E5]/10 transform transition-all duration-200 hover:-translate-y-[2px] cursor-pointer shadow-md min-h-[160px] flex items-center">
+            <Card
+              className="bg-[#18181B] border-[#27272A] rounded-xl hover:border-[#4F46E5] hover:shadow-lg hover:shadow-[#4F46E5]/10 hover:-translate-y-[2px] cursor-pointer shadow-md min-h-[160px] flex items-center"
+              style={{ transition: 'transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease' }}
+            >
               <CardContent className="p-8 flex items-center justify-between w-full">
                 <div className="space-y-2 min-w-0">
                   <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">
@@ -384,7 +390,10 @@ export default function Home() {
             </Card>
 
             {/* Top Source Card */}
-            <Card className="bg-[#18181B] border-[#27272A] rounded-xl hover:border-[#4F46E5] hover:shadow-lg hover:shadow-[#4F46E5]/10 transform transition-all duration-200 hover:-translate-y-[2px] cursor-pointer shadow-md min-h-[160px] flex items-center">
+            <Card
+              className="bg-[#18181B] border-[#27272A] rounded-xl hover:border-[#4F46E5] hover:shadow-lg hover:shadow-[#4F46E5]/10 hover:-translate-y-[2px] cursor-pointer shadow-md min-h-[160px] flex items-center"
+              style={{ transition: 'transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease' }}
+            >
               <CardContent className="p-8 flex items-center justify-between w-full">
                 <div className="space-y-2 min-w-0 flex-1">
                   <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">
@@ -404,7 +413,10 @@ export default function Home() {
             </Card>
 
             {/* Last Updated Card */}
-            <Card className="bg-[#18181B] border-[#27272A] rounded-xl hover:border-[#4F46E5] hover:shadow-lg hover:shadow-[#4F46E5]/10 transform transition-all duration-200 hover:-translate-y-[2px] cursor-pointer shadow-md min-h-[160px] flex items-center">
+            <Card
+              className="bg-[#18181B] border-[#27272A] rounded-xl hover:border-[#4F46E5] hover:shadow-lg hover:shadow-[#4F46E5]/10 hover:-translate-y-[2px] cursor-pointer shadow-md min-h-[160px] flex items-center"
+              style={{ transition: 'transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease' }}
+            >
               <CardContent className="p-8 flex items-center justify-between w-full">
                 <div className="space-y-2 min-w-0">
                   <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">
