@@ -220,7 +220,7 @@ export default function Home() {
       <div>
         {/* Top Header */}
         <header className="sticky top-0 z-20 border-b border-[#27272A] bg-[#09090B]/95 backdrop-blur-sm">
-          <div className="max-w-screen-xl mx-auto px-6 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="max-w-[1650px] mx-auto px-6 md:px-12 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-[#4F46E5] flex items-center justify-center text-white shadow-lg shadow-[#4F46E5]/20 shrink-0">
@@ -256,7 +256,7 @@ export default function Home() {
         </header>
 
         {/* Dashboard workspace content */}
-        <div className="max-w-screen-xl mx-auto px-6 py-6 space-y-6">
+        <div className="max-w-[1650px] mx-auto px-6 md:px-12 py-10 space-y-10">
           {/* Error Banner */}
           {error && (
             <Alert variant="destructive">
@@ -266,7 +266,7 @@ export default function Home() {
           )}
 
           {/* KPI Dashboard Overview Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Total Topics Card */}
             <Card className="bg-[#18181B] border-[#27272A] rounded-xl hover:border-[#4F46E5]/50 transition-all duration-300 shadow-md">
               <CardContent className="p-5 flex items-center justify-between">
@@ -350,7 +350,7 @@ export default function Home() {
           />
 
           {/* Lower Grid (Trending Topics + Detail Panel) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
             <TrendingTopics
               data={timelineData}
               onSelectCluster={handleSelectCluster}
@@ -387,8 +387,8 @@ export default function Home() {
       </div>
 
       {/* Terminal-style Activity Log Footer */}
-      <footer className="border-t border-[#27272A] bg-[#09090B]/50 py-4 px-6 shrink-0 mt-6">
-        <div className="max-w-screen-xl mx-auto flex flex-col gap-2">
+      <footer className="border-t border-[#27272A] bg-[#09090B]/50 py-6 px-6 md:px-12 shrink-0 mt-10">
+        <div className="max-w-[1650px] mx-auto flex flex-col gap-2">
           <div className="flex items-center gap-1.5 text-muted-foreground text-[10px] font-bold uppercase tracking-wider">
             <Terminal size={12} className="text-[#4F46E5]" />
             Recent Scraper & Clustering Activity
