@@ -109,11 +109,11 @@ export const Timeline: React.FC<TimelineProps> = ({
   // Dynamic layout calculations
   const maxLanesLimit = 8;
   const activeLanesCount = Math.min(totalLanes, maxLanesLimit);
-  const svgHeight = activeLanesCount * 45 + 85;
-  const paddingLeft = 60;
-  const paddingRight = 60;
-  const paddingTop = 40;
-  const paddingBottom = 45;
+  const svgHeight = activeLanesCount * 65 + 115;
+  const paddingLeft = 70;
+  const paddingRight = 70;
+  const paddingTop = 50;
+  const paddingBottom = 55;
   const chartHeight = svgHeight - paddingTop - paddingBottom;
   const chartWidth = 1000; // Fixed coordinate system for viewBox scaling
 
@@ -230,17 +230,17 @@ export const Timeline: React.FC<TimelineProps> = ({
       {/* Absolute Tooltip Overlay */}
       {hoveredTopic && hoveredPosition && (
         <div
-          className="absolute z-30 bg-[#18181B]/95 backdrop-blur-md border border-[#27272A] text-[#FAFAFA] p-3.5 rounded-lg shadow-2xl max-w-xs space-y-2.5 pointer-events-none transition-all duration-75 ease-out"
+          className="absolute z-30 bg-[#09090B]/98 backdrop-blur-md border border-[#4F46E5]/30 text-[#FAFAFA] p-4.5 rounded-xl shadow-2xl shadow-[#4F46E5]/5 max-w-xs space-y-2.5 pointer-events-none transition-all duration-75 ease-out"
           style={{
             left: `${hoveredPosition.x}px`,
             top: `${hoveredPosition.y - 12}px`,
             transform: 'translate(-50%, -100%)',
           }}
         >
-          <div className="font-semibold text-xs text-[#FAFAFA] leading-snug border-b border-[#27272A] pb-1.5">
+          <div className="font-bold text-sm text-[#FAFAFA] leading-snug border-b border-[#27272A] pb-1.5">
             {hoveredTopic.label}
           </div>
-          <div className="space-y-1.5 text-[10px] text-muted-foreground">
+          <div className="space-y-1.5 text-xs text-zinc-300">
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[#4F46E5]" />
               <span><strong>{hoveredTopic.articleCount}</strong> articles published</span>
@@ -255,7 +255,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                 <span className="line-clamp-2">Sources: {hoveredTopic.sources.join(', ')}</span>
               </div>
             )}
-            <div className="flex items-center gap-2 border-t border-[#27272A]/50 pt-1.5 text-[9px] font-mono">
+            <div className="flex items-center gap-2 border-t border-[#27272A]/50 pt-1.5 text-[10px] font-mono text-muted-foreground">
               <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
               <span>
                 {new Date(hoveredTopic.startTime).toLocaleDateString()} - {new Date(hoveredTopic.endTime).toLocaleDateString()}
@@ -293,7 +293,7 @@ export const Timeline: React.FC<TimelineProps> = ({
         )}
       </CardHeader>
 
-      <CardContent className="pb-5 pt-0 overflow-x-auto">
+      <CardContent className="pb-8 pt-4 px-8 overflow-x-auto">
         <div className="min-w-[800px] relative">
           <svg
             viewBox={`0 0 ${chartWidth} ${svgHeight}`}
@@ -338,7 +338,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                     y={svgHeight - paddingBottom + 25}
                     textAnchor="middle"
                     fill="#A1A1AA"
-                    className="text-[9px] font-mono font-medium"
+                    className="text-[10px] font-mono font-medium"
                   >
                     {formatTickDate(tick)}
                   </text>
@@ -378,10 +378,10 @@ export const Timeline: React.FC<TimelineProps> = ({
             {hoveredTopic && (
               <rect
                 x={paddingLeft - 20}
-                y={getY(hoveredTopic.id) - 18}
+                y={getY(hoveredTopic.id) - 28}
                 width={chartWidth - paddingLeft - paddingRight + 40}
-                height={36}
-                rx={6}
+                height={56}
+                rx={8}
                 fill="#4F46E5"
                 fillOpacity={0.03}
                 stroke="#4F46E5"
@@ -393,10 +393,10 @@ export const Timeline: React.FC<TimelineProps> = ({
             {selectedClusterId !== null && (
               <rect
                 x={paddingLeft - 20}
-                y={getY(selectedClusterId) - 18}
+                y={getY(selectedClusterId) - 28}
                 width={chartWidth - paddingLeft - paddingRight + 40}
-                height={36}
-                rx={6}
+                height={56}
+                rx={8}
                 fill="#4F46E5"
                 fillOpacity={0.07}
                 stroke="#4F46E5"
@@ -418,7 +418,7 @@ export const Timeline: React.FC<TimelineProps> = ({
 
               // Calculate radius based on volume: min 6px, max 20px
               const maxCountInBatch = Math.max(...data.map((t) => t.articleCount), 1);
-              const rVal = 6 + Math.sqrt(topic.articleCount / maxCountInBatch) * 14;
+              const rVal = 8 + Math.sqrt(topic.articleCount / maxCountInBatch) * 18;
 
               // Opacity matches intensity (faded if search active and not matching)
               const matchesSearch = topic.label.toLowerCase().includes(searchQuery.toLowerCase());
@@ -435,6 +435,25 @@ export const Timeline: React.FC<TimelineProps> = ({
                   onMouseLeave={handleMouseLeave}
                   style={{ opacity }}
                 >
+                  {/* Invisible thick hover target line to expand interaction area */}
+                  <line
+                    x1={xStart}
+                    y1={yVal}
+                    x2={xEnd}
+                    y2={yVal}
+                    stroke="transparent"
+                    strokeWidth={24}
+                    strokeLinecap="round"
+                    className="cursor-pointer"
+                  />
+                  {/* Invisible large hover target circle to expand interaction area */}
+                  <circle
+                    cx={xMid}
+                    cy={yVal}
+                    r={rVal + 14}
+                    fill="transparent"
+                    className="cursor-pointer"
+                  />
                   {/* Glowing line segment for selected state */}
                   {isSelected && (
                     <line
@@ -524,12 +543,12 @@ export const Timeline: React.FC<TimelineProps> = ({
                       {/* Dynamic label text */}
                       <text
                         x={xMid}
-                        y={yVal - rVal - 6}
+                        y={yVal - rVal - 8}
                         textAnchor="middle"
                         fill={isSelected ? '#FAFAFA' : isHovered ? '#818CF8' : '#A1A1AA'}
-                        className={`text-[9px] ${isSelected ? 'font-bold' : 'font-medium'} tracking-wide`}
+                        className={`text-[11px] ${isSelected ? 'font-bold' : 'font-medium'} tracking-wide`}
                       >
-                        {topic.label.length > 22 ? `${topic.label.slice(0, 20)}...` : topic.label}
+                        {topic.label.length > 26 ? `${topic.label.slice(0, 24)}...` : topic.label}
                       </text>
                     </g>
                   )}
