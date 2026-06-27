@@ -86,8 +86,8 @@ export const ClusterDetail: React.FC<ClusterDetailProps> = ({
           <div className="w-12 h-12 rounded-full bg-[#4F46E5]/10 flex items-center justify-center text-[#4F46E5] animate-pulse">
             <Sparkles size={22} />
           </div>
-          <h3 className="text-sm font-bold tracking-tight text-[#FAFAFA]">Select a News Topic</h3>
-          <p className="text-xs text-muted-foreground leading-relaxed">
+          <h3 className="text-base font-bold tracking-tight text-[#FAFAFA]">Select a News Topic</h3>
+          <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
             Click on a timeline track above or select a ranked topic from the trending panel to generate real-time AI cluster synthesis, view publisher breakdowns, and inspect individual reports.
           </p>
         </div>
@@ -142,32 +142,32 @@ export const ClusterDetail: React.FC<ClusterDetailProps> = ({
     <Card ref={cardRef} className="flex flex-col h-[480px] border-[#27272A] bg-[#18181B] rounded-xl shadow-lg justify-between">
       <CardHeader className="p-6 pb-2 shrink-0 space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <Badge className="bg-[#4F46E5]/10 text-[#4F46E5] hover:bg-[#4F46E5]/15 border border-[#4F46E5]/20 text-[9px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full">
+          <Badge className="bg-[#4F46E5]/10 text-[#4F46E5] hover:bg-[#4F46E5]/15 border border-[#4F46E5]/20 text-[10px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full">
             Topic Focus
           </Badge>
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-[#4F46E5]" />
-            <span className="text-[10px] text-muted-foreground font-bold">
+            <span className="text-xs text-muted-foreground font-bold">
               {detail.articleCount} articles total
             </span>
           </div>
         </div>
         
         <div>
-          <CardTitle className="text-base font-bold leading-snug text-[#FAFAFA] line-clamp-1" title={detail.label}>
+          <CardTitle className="text-lg font-bold leading-snug text-[#FAFAFA] line-clamp-1" title={detail.label}>
             {detail.label}
           </CardTitle>
           
           {/* Clean Metadata Section */}
-          <div className="flex items-center gap-4 text-[10px] text-muted-foreground mt-2 font-medium">
+          <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2 font-medium">
             <div className="flex items-center gap-1">
-              <Calendar size={11} className="text-[#4F46E5]/70 shrink-0" />
+              <Calendar size={13} className="text-[#4F46E5]/70 shrink-0" />
               <span>
                 {new Date(detail.startTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – {new Date(detail.endTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
               </span>
             </div>
             <div className="flex items-center gap-1">
-              <Clock size={11} className="text-[#4F46E5]/70 shrink-0" />
+              <Clock size={13} className="text-[#4F46E5]/70 shrink-0" />
               <span>{durationStr}</span>
             </div>
           </div>
@@ -178,11 +178,11 @@ export const ClusterDetail: React.FC<ClusterDetailProps> = ({
       <CardContent className="flex-1 overflow-y-auto px-6 py-2 space-y-4">
         {/* AI Synthesis block */}
         <div className="space-y-1.5">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#FAFAFA] tracking-wide uppercase">
-            <Sparkles size={11} className="text-[#4F46E5]" />
+          <div className="flex items-center gap-1.5 text-xs font-bold text-[#FAFAFA] tracking-wide uppercase">
+            <Sparkles size={13} className="text-[#4F46E5]" />
             <span>AI Intelligence Synthesis</span>
           </div>
-          <p className="text-xs text-muted-foreground leading-relaxed">
+          <p className="text-xs md:text-sm text-muted-foreground leading-relaxed">
             {topicDescription}
           </p>
         </div>
@@ -191,7 +191,7 @@ export const ClusterDetail: React.FC<ClusterDetailProps> = ({
         {availableSources.length > 0 && (
           <div className="space-y-2 pt-2 border-t border-[#27272A]">
             <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#FAFAFA] tracking-wide uppercase">
-              <BarChart2 size={11} className="text-[#4F46E5]" />
+              <BarChart2 size={13} className="text-[#4F46E5]" />
               <span>Publisher Distribution</span>
             </div>
             <div className="space-y-2.5">
@@ -209,11 +209,11 @@ export const ClusterDetail: React.FC<ClusterDetailProps> = ({
                       isActive ? 'bg-[#4F46E5]/5' : 'hover:bg-[#27272A]/20'
                     }`}
                   >
-                    <div className="flex items-center justify-between text-[11px] font-medium">
-                      <span className={`${isActive ? 'text-[#818CF8]' : 'text-zinc-300'} group-hover/bar:text-[#FAFAFA] transition-colors`}>
+                    <div className="flex items-center justify-between text-xs font-medium">
+                      <span className={`text-xs ${isActive ? 'text-[#818CF8]' : 'text-zinc-300'} group-hover/bar:text-[#FAFAFA] transition-colors`}>
                         {src}
                       </span>
-                      <span className="text-muted-foreground text-[10px]">
+                      <span className="text-muted-foreground text-[11px]">
                         {count} {count === 1 ? 'article' : 'articles'} ({percent}%)
                       </span>
                     </div>
@@ -237,14 +237,14 @@ export const ClusterDetail: React.FC<ClusterDetailProps> = ({
       {/* Footer Pill Filters */}
       {availableSources.length > 0 && (
         <div className="px-6 py-4 border-t border-[#27272A] flex flex-wrap items-center gap-1.5 bg-[#18181B]/40 shrink-0">
-          <span className="text-[10px] font-bold text-muted-foreground mr-1 flex items-center gap-1">
-            <Filter size={10} className="text-[#4F46E5]" /> Filters:
+          <span className="text-xs font-bold text-muted-foreground mr-1 flex items-center gap-1">
+            <Filter size={12} className="text-[#4F46E5]" /> Filters:
           </span>
           <Button
             variant="outline"
             size="sm"
             onClick={() => onChangeSources([])}
-            className={`h-5.5 px-2.5 text-[9px] font-semibold rounded-full border cursor-pointer transition-all duration-150 ${
+            className={`h-5.5 px-2.5 text-[10px] font-semibold rounded-full border cursor-pointer transition-all duration-150 ${
               selectedSources.length === 0
                 ? 'bg-[#4F46E5] text-[#FAFAFA] border-transparent hover:bg-[#4F46E5]/90'
                 : 'bg-transparent text-muted-foreground border-[#27272A] hover:bg-[#27272A] hover:text-[#FAFAFA]'
@@ -328,10 +328,10 @@ export const ArticleList: React.FC<ArticleListProps> = ({
     <Card className="flex flex-col border-[#27272A] bg-[#18181B] rounded-xl shadow-lg">
       <CardHeader className="p-5 pb-3 flex flex-row items-center justify-between">
         <div className="flex items-center gap-2">
-          <BookOpen size={16} className="text-[#4F46E5]" />
-          <CardTitle className="text-sm font-bold tracking-tight text-[#FAFAFA]">Article List</CardTitle>
+          <BookOpen size={20} className="text-[#4F46E5]" />
+          <CardTitle className="text-base font-bold tracking-tight text-[#FAFAFA]">Article List</CardTitle>
         </div>
-        <span className="text-[10px] text-muted-foreground font-semibold">
+        <span className="text-xs text-muted-foreground font-semibold">
           Showing {filteredArticles.length} articles on this page
         </span>
       </CardHeader>
@@ -359,21 +359,21 @@ export const ArticleList: React.FC<ArticleListProps> = ({
           size="sm"
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1 || loading}
-          className="h-8 px-3 text-[10px] font-semibold border-[#27272A] hover:bg-[#27272A] hover:text-[#FAFAFA] cursor-pointer rounded-lg disabled:opacity-50"
+          className="h-8 px-3 text-xs font-semibold border-[#27272A] hover:bg-[#27272A] hover:text-[#FAFAFA] cursor-pointer rounded-lg disabled:opacity-50"
         >
-          <ChevronLeft size={14} className="mr-0.5" />
+          <ChevronLeft size={16} className="mr-0.5" />
           Prev Page
         </Button>
-        <span className="text-xs font-semibold text-muted-foreground">Page {page}</span>
+        <span className="text-sm font-semibold text-muted-foreground">Page {page}</span>
         <Button
           variant="outline"
           size="sm"
           onClick={() => onPageChange(page + 1)}
           disabled={articles.length < PAGE_LIMIT || loading}
-          className="h-8 px-3 text-[10px] font-semibold border-[#27272A] hover:bg-[#27272A] hover:text-[#FAFAFA] cursor-pointer rounded-lg disabled:opacity-50"
+          className="h-8 px-3 text-xs font-semibold border-[#27272A] hover:bg-[#27272A] hover:text-[#FAFAFA] cursor-pointer rounded-lg disabled:opacity-50"
         >
           Next Page
-          <ChevronRight size={14} className="ml-0.5" />
+          <ChevronRight size={16} className="ml-0.5" />
         </Button>
       </div>
     </Card>
@@ -386,11 +386,11 @@ function ArticleCard({ article }: { article: Article }) {
       <div>
         <div className="flex items-start justify-between gap-3 mb-3.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <Badge className="bg-[#27272A] text-zinc-300 hover:bg-[#27272A] border border-[#27272A]/50 text-[9px] font-semibold px-2 py-0.5 tracking-wider uppercase rounded-md">
+            <Badge className="bg-[#27272A] text-zinc-300 hover:bg-[#27272A] border border-[#27272A]/50 text-[10px] font-semibold px-2 py-0.5 tracking-wider uppercase rounded-md">
               {article.source}
             </Badge>
-            <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
-              <Clock size={11} className="text-[#4F46E5]/60 shrink-0" />
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+              <Clock size={13} className="text-[#4F46E5]/60 shrink-0" />
               {new Intl.DateTimeFormat('en', {
                 month: 'short',
                 day: 'numeric',
@@ -404,22 +404,22 @@ function ArticleCard({ article }: { article: Article }) {
             href={article.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-7 h-7 rounded-full bg-[#27272A]/40 flex items-center justify-center text-muted-foreground hover:text-[#FAFAFA] hover:bg-[#4F46E5]/20 hover:border-[#4F46E5]/40 border border-transparent transition-all shrink-0"
+            className="w-7.5 h-7.5 rounded-full bg-[#27272A]/40 flex items-center justify-center text-muted-foreground hover:text-[#FAFAFA] hover:bg-[#4F46E5]/20 hover:border-[#4F46E5]/40 border border-transparent transition-all shrink-0"
             aria-label="Open article link"
           >
-            <ExternalLink size={13} />
+            <ExternalLink size={15} />
           </a>
         </div>
         <a
           href={article.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="block text-xs font-bold text-[#FAFAFA] hover:text-[#4F46E5] transition-colors duration-150 leading-snug mb-2.5 line-clamp-2"
+          className="block text-sm font-bold text-[#FAFAFA] hover:text-[#4F46E5] transition-colors duration-150 leading-snug mb-2.5 line-clamp-2"
         >
           {article.title}
         </a>
         {article.summary && (
-          <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">
+          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
             {article.summary}
           </p>
         )}

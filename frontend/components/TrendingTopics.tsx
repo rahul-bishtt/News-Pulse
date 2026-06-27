@@ -56,10 +56,10 @@ export const TrendingTopics: React.FC<TrendingTopicsProps> = ({
     <Card className="flex flex-col h-[480px] border-[#27272A] bg-[#18181B] rounded-xl shadow-lg">
       <CardHeader className="p-5 pb-3 shrink-0">
         <div className="flex items-center gap-2">
-          <TrendingUp size={16} className="text-[#4F46E5]" />
-          <CardTitle className="text-sm font-bold tracking-tight text-[#FAFAFA]">Trending News Topics</CardTitle>
+          <TrendingUp size={20} className="text-[#4F46E5]" />
+          <CardTitle className="text-base font-bold tracking-tight text-[#FAFAFA]">Trending News Topics</CardTitle>
         </div>
-        <CardDescription className="text-xs text-muted-foreground mt-0.5">
+        <CardDescription className="text-xs md:text-sm text-muted-foreground mt-0.5">
           Ranked by article volume and chronologically tracked
         </CardDescription>
       </CardHeader>
@@ -85,28 +85,28 @@ export const TrendingTopics: React.FC<TrendingTopicsProps> = ({
                 >
                   <div className="space-y-1.5 min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs font-bold ${isSelected ? 'text-[#818CF8]' : 'text-[#4F46E5]'}`}>
+                      <span className={`text-xs md:text-sm font-bold ${isSelected ? 'text-[#818CF8]' : 'text-[#4F46E5]'}`}>
                         #{index + 1}
                       </span>
-                      <h4 className="text-xs font-bold truncate text-[#FAFAFA]">
+                      <h4 className="text-xs md:text-sm font-bold truncate text-[#FAFAFA]">
                         {topic.label}
                       </h4>
                     </div>
                     
-                    <div className="flex items-center gap-3.5 text-[10px] text-muted-foreground font-medium">
+                    <div className="flex items-center gap-3.5 text-xs text-muted-foreground font-medium">
                       <span className="flex items-center gap-1">
-                        <Calendar size={10} className="text-[#4F46E5]/70 shrink-0" />
+                        <Calendar size={12} className="text-[#4F46E5]/70 shrink-0" />
                         {formatDateRange(topic.startTime, topic.endTime)}
                       </span>
                       <span className="flex items-center gap-1">
-                        <Clock size={10} className="text-[#4F46E5]/70 shrink-0" />
+                        <Clock size={12} className="text-[#4F46E5]/70 shrink-0" />
                         {calculateDuration(topic.startTime, topic.endTime)}
                       </span>
                     </div>
                   </div>
 
                   <Badge 
-                    className={`text-[9px] font-semibold px-2 py-0.5 shrink-0 rounded-md tracking-wider uppercase ${
+                    className={`text-[10px] font-semibold px-2 py-0.5 shrink-0 rounded-md tracking-wider uppercase ${
                       isSelected 
                         ? 'bg-[#4F46E5] text-[#FAFAFA] hover:bg-[#4F46E5]' 
                         : 'bg-[#27272A] text-zinc-300 border border-[#27272A]/50 hover:bg-[#27272A]'

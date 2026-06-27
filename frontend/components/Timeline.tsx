@@ -269,13 +269,13 @@ export const Timeline: React.FC<TimelineProps> = ({
       <CardHeader className="pb-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <CalendarDays size={16} className="text-[#4F46E5] animate-pulse" />
-            <CardTitle className="text-sm font-semibold tracking-tight text-[#FAFAFA]">Topic Evolution Timeline</CardTitle>
-            <Badge variant="outline" className="text-[9px] px-1.5 py-0.5 border-[#27272A] text-muted-foreground ml-1">
+            <CalendarDays size={20} className="text-[#4F46E5] animate-pulse" />
+            <CardTitle className="text-base font-bold tracking-tight text-[#FAFAFA]">Topic Evolution Timeline</CardTitle>
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-[#27272A] text-muted-foreground ml-1">
               Interactive
             </Badge>
           </div>
-          <CardDescription className="text-xs mt-1">
+          <CardDescription className="text-[13px] mt-1">
             Map out news categories chronologically. Circle size dictates article density, and path length indicates duration.
           </CardDescription>
         </div>
@@ -541,9 +541,9 @@ export const Timeline: React.FC<TimelineProps> = ({
       </CardContent>
       
       {/* Bottom Interactive Guide Bar */}
-      <div className="border-t border-[#27272A] px-5 py-3 flex items-center justify-between text-[10px] text-muted-foreground bg-card/25 rounded-b-lg">
+      <div className="border-t border-[#27272A] px-5 py-3.5 flex items-center justify-between text-[11px] text-muted-foreground bg-card/25 rounded-b-lg">
         <div className="flex items-center gap-1.5">
-          <Info size={12} className="text-[#4F46E5]" />
+          <Info size={14} className="text-[#4F46E5]" />
           <span>Interactive Constellation: Node size = articles quantity; line length = duration. Click nodes to focus.</span>
         </div>
         <div className="flex items-center gap-4">
