@@ -81,7 +81,7 @@ export const ClusterDetail: React.FC<ClusterDetailProps> = ({
   // No Selection Empty State (matches h-[480px] of Trending Topics)
   if (!clusterId) {
     return (
-      <Card className="h-[480px] flex flex-col justify-center items-center border-dashed border border-[#27272A] p-8 bg-[#18181B]/20 rounded-xl">
+      <Card className="h-[540px] flex flex-col justify-center items-center border-dashed border border-[#27272A] p-10 bg-[#18181B]/20 rounded-xl">
         <div className="flex flex-col items-center max-w-[340px] text-center gap-4">
           <div className="w-12 h-12 rounded-full bg-[#4F46E5]/10 flex items-center justify-center text-[#4F46E5] animate-pulse">
             <Sparkles size={22} />
@@ -98,7 +98,7 @@ export const ClusterDetail: React.FC<ClusterDetailProps> = ({
   // Loading skeleton state (matches h-[480px])
   if (loading && !detail) {
     return (
-      <Card className="h-[480px] flex flex-col border-[#27272A] p-6 bg-[#18181B] rounded-xl justify-between">
+      <Card className="h-[540px] flex flex-col border-[#27272A] p-7 bg-[#18181B] rounded-xl justify-between">
         <div className="space-y-4">
           <Skeleton className="h-5 w-24 rounded bg-zinc-800" />
           <Skeleton className="h-7 w-3/4 rounded bg-zinc-800" />
@@ -139,8 +139,8 @@ export const ClusterDetail: React.FC<ClusterDetailProps> = ({
     : `${diffHours || 1}h active`;
 
   return (
-    <Card ref={cardRef} className="flex flex-col h-[480px] border-[#27272A] bg-[#18181B] rounded-xl shadow-lg justify-between">
-      <CardHeader className="p-6 pb-2 shrink-0 space-y-3">
+    <Card ref={cardRef} className="flex flex-col h-[540px] border-[#27272A] bg-[#18181B] rounded-xl shadow-lg justify-between">
+      <CardHeader className="p-7 pb-3 shrink-0 space-y-4">
         <div className="flex items-center justify-between gap-2">
           <Badge className="bg-[#4F46E5]/10 text-[#4F46E5] hover:bg-[#4F46E5]/15 border border-[#4F46E5]/20 text-[10px] font-bold tracking-wider uppercase px-2.5 py-0.5 rounded-full">
             Topic Focus
@@ -154,12 +154,12 @@ export const ClusterDetail: React.FC<ClusterDetailProps> = ({
         </div>
         
         <div>
-          <CardTitle className="text-lg font-bold leading-snug text-[#FAFAFA] line-clamp-1" title={detail.label}>
+          <CardTitle className="text-xl font-bold leading-snug text-[#FAFAFA] line-clamp-1" title={detail.label}>
             {detail.label}
           </CardTitle>
           
           {/* Clean Metadata Section */}
-          <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2 font-medium">
+          <div className="flex items-center gap-5 text-[13px] text-muted-foreground mt-3 font-medium">
             <div className="flex items-center gap-1">
               <Calendar size={13} className="text-[#4F46E5]/70 shrink-0" />
               <span>
@@ -175,7 +175,7 @@ export const ClusterDetail: React.FC<ClusterDetailProps> = ({
       </CardHeader>
 
       {/* Main Analysis scroll area to avoid empty areas */}
-      <CardContent className="flex-1 overflow-y-auto px-6 py-2 space-y-4">
+      <CardContent className="flex-1 overflow-y-auto px-7 py-3 space-y-5">
         {/* AI Synthesis block */}
         <div className="space-y-1.5">
           <div className="flex items-center gap-1.5 text-xs font-bold text-[#FAFAFA] tracking-wide uppercase">
@@ -236,7 +236,7 @@ export const ClusterDetail: React.FC<ClusterDetailProps> = ({
 
       {/* Footer Pill Filters */}
       {availableSources.length > 0 && (
-        <div className="px-6 py-4 border-t border-[#27272A] flex flex-wrap items-center gap-1.5 bg-[#18181B]/40 shrink-0">
+        <div className="px-7 py-4.5 border-t border-[#27272A] flex flex-wrap items-center gap-1.5 bg-[#18181B]/40 shrink-0">
           <span className="text-xs font-bold text-muted-foreground mr-1 flex items-center gap-1">
             <Filter size={12} className="text-[#4F46E5]" /> Filters:
           </span>
@@ -382,9 +382,9 @@ export const ArticleList: React.FC<ArticleListProps> = ({
 
 function ArticleCard({ article }: { article: Article }) {
   return (
-    <div className="group rounded-xl border border-[#27272A] bg-[#18181B] p-5 hover:border-[#4F46E5]/40 hover:-translate-y-0.5 hover:shadow-md hover:shadow-[#4F46E5]/5 transition-all duration-200 flex flex-col justify-between hover:bg-[#27272A]/10">
+    <div className="group rounded-xl border border-[#27272A] bg-[#18181B] p-6 hover:border-[#4F46E5]/40 hover:-translate-y-0.5 hover:shadow-md hover:shadow-[#4F46E5]/5 transition-all duration-200 flex flex-col justify-between hover:bg-[#27272A]/10">
       <div>
-        <div className="flex items-start justify-between gap-3 mb-3.5">
+        <div className="flex items-start justify-between gap-3 mb-4.5">
           <div className="flex items-center gap-2 flex-wrap">
             <Badge className="bg-[#27272A] text-zinc-300 hover:bg-[#27272A] border border-[#27272A]/50 text-[10px] font-semibold px-2 py-0.5 tracking-wider uppercase rounded-md">
               {article.source}
@@ -404,22 +404,22 @@ function ArticleCard({ article }: { article: Article }) {
             href={article.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-7.5 h-7.5 rounded-full bg-[#27272A]/40 flex items-center justify-center text-muted-foreground hover:text-[#FAFAFA] hover:bg-[#4F46E5]/20 hover:border-[#4F46E5]/40 border border-transparent transition-all shrink-0"
+            className="w-9 h-9 rounded-full bg-[#27272A]/40 flex items-center justify-center text-muted-foreground hover:text-[#FAFAFA] hover:bg-[#4F46E5]/20 hover:border-[#4F46E5]/40 border border-transparent transition-all shrink-0"
             aria-label="Open article link"
           >
-            <ExternalLink size={15} />
+            <ExternalLink size={18} />
           </a>
         </div>
         <a
           href={article.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="block text-sm font-bold text-[#FAFAFA] hover:text-[#4F46E5] transition-colors duration-150 leading-snug mb-2.5 line-clamp-2"
+          className="block text-base font-bold text-[#FAFAFA] hover:text-[#4F46E5] transition-colors duration-150 leading-snug mb-3.5 line-clamp-2"
         >
           {article.title}
         </a>
         {article.summary && (
-          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+          <p className="text-[13px] text-zinc-400 leading-relaxed line-clamp-2">
             {article.summary}
           </p>
         )}
