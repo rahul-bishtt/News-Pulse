@@ -53,21 +53,21 @@ export const TrendingTopics: React.FC<TrendingTopicsProps> = ({
   );
 
   return (
-    <Card className="flex flex-col h-[480px]">
-      <CardHeader className="pb-3 shrink-0">
+    <Card className="flex flex-col h-[480px] border-[#27272A] bg-[#18181B] rounded-xl shadow-lg">
+      <CardHeader className="p-5 pb-3 shrink-0">
         <div className="flex items-center gap-2">
-          <TrendingUp size={15} className="text-primary" />
-          <CardTitle className="text-sm font-semibold tracking-tight">Trending News Topics</CardTitle>
+          <TrendingUp size={16} className="text-[#4F46E5]" />
+          <CardTitle className="text-sm font-bold tracking-tight text-[#FAFAFA]">Trending News Topics</CardTitle>
         </div>
-        <CardDescription>
+        <CardDescription className="text-xs text-muted-foreground mt-0.5">
           Ranked by article volume and chronologically tracked
         </CardDescription>
       </CardHeader>
-      <ScrollArea className="flex-1 min-h-0 border-t border-border">
-        <CardContent className="p-3 space-y-1">
+      <ScrollArea className="flex-1 min-h-0 border-t border-[#27272A]">
+        <CardContent className="p-4 space-y-2">
           {filteredData.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
-              <Newspaper size={24} strokeWidth={1.5} />
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-2">
+              <Newspaper size={28} className="text-zinc-600" strokeWidth={1.5} />
               <p className="text-xs">No matching topics found.</p>
             </div>
           ) : (
@@ -77,35 +77,41 @@ export const TrendingTopics: React.FC<TrendingTopicsProps> = ({
                 <button
                   key={topic.id}
                   onClick={() => onSelectCluster(topic.id)}
-                  className={`w-full text-left p-3 rounded-lg border transition-all duration-150 flex items-start justify-between gap-3 ${
+                  className={`w-full text-left p-3.5 rounded-xl border transition-all duration-200 flex items-start justify-between gap-3 cursor-pointer ${
                     isSelected
-                      ? 'bg-primary/10 border-primary text-foreground'
-                      : 'bg-transparent border-transparent hover:bg-secondary/50 text-muted-foreground hover:text-foreground'
+                      ? 'bg-[#4F46E5]/10 border-[#4F46E5] text-[#FAFAFA] shadow-md shadow-[#4F46E5]/5'
+                      : 'bg-transparent border-transparent hover:border-[#27272A] hover:bg-[#27272A]/10 text-muted-foreground hover:text-[#FAFAFA]'
                   }`}
                 >
-                  <div className="space-y-1 min-w-0 flex-1">
+                  <div className="space-y-1.5 min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-primary/70">
+                      <span className={`text-xs font-bold ${isSelected ? 'text-[#818CF8]' : 'text-[#4F46E5]'}`}>
                         #{index + 1}
                       </span>
-                      <h4 className="text-xs font-medium truncate text-foreground">
+                      <h4 className="text-xs font-bold truncate text-[#FAFAFA]">
                         {topic.label}
                       </h4>
                     </div>
                     
-                    <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                    <div className="flex items-center gap-3.5 text-[10px] text-muted-foreground font-medium">
                       <span className="flex items-center gap-1">
-                        <Calendar size={10} />
+                        <Calendar size={10} className="text-[#4F46E5]/70 shrink-0" />
                         {formatDateRange(topic.startTime, topic.endTime)}
                       </span>
                       <span className="flex items-center gap-1">
-                        <Clock size={10} />
+                        <Clock size={10} className="text-[#4F46E5]/70 shrink-0" />
                         {calculateDuration(topic.startTime, topic.endTime)}
                       </span>
                     </div>
                   </div>
 
-                  <Badge variant={isSelected ? 'default' : 'secondary'} className="text-[10px] px-2 py-0.5 shrink-0">
+                  <Badge 
+                    className={`text-[9px] font-semibold px-2 py-0.5 shrink-0 rounded-md tracking-wider uppercase ${
+                      isSelected 
+                        ? 'bg-[#4F46E5] text-[#FAFAFA] hover:bg-[#4F46E5]' 
+                        : 'bg-[#27272A] text-zinc-300 border border-[#27272A]/50 hover:bg-[#27272A]'
+                    }`}
+                  >
                     {topic.articleCount} articles
                   </Badge>
                 </button>

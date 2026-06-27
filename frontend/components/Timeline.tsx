@@ -356,6 +356,56 @@ export const Timeline: React.FC<TimelineProps> = ({
               strokeWidth={1.5}
             />
 
+            {/* Horizontal Track Guide Lines */}
+            {Array.from({ length: activeLanesCount }).map((_, laneIdx) => {
+              const yVal = paddingTop + laneIdx * (chartHeight / Math.max(activeLanesCount - 1, 1));
+              return (
+                <line
+                  key={`lane-guide-${laneIdx}`}
+                  x1={paddingLeft - 20}
+                  y1={yVal}
+                  x2={chartWidth - paddingRight + 20}
+                  y2={yVal}
+                  stroke="#27272A"
+                  strokeWidth={1}
+                  strokeDasharray="2 6"
+                  opacity={0.35}
+                />
+              );
+            })}
+
+            {/* Selected / Hovered Track Highlight Strips */}
+            {hoveredTopic && (
+              <rect
+                x={paddingLeft - 20}
+                y={getY(hoveredTopic.id) - 18}
+                width={chartWidth - paddingLeft - paddingRight + 40}
+                height={36}
+                rx={6}
+                fill="#4F46E5"
+                fillOpacity={0.03}
+                stroke="#4F46E5"
+                strokeOpacity={0.12}
+                strokeWidth={1}
+                className="pointer-events-none transition-all duration-200"
+              />
+            )}
+            {selectedClusterId !== null && (
+              <rect
+                x={paddingLeft - 20}
+                y={getY(selectedClusterId) - 18}
+                width={chartWidth - paddingLeft - paddingRight + 40}
+                height={36}
+                rx={6}
+                fill="#4F46E5"
+                fillOpacity={0.07}
+                stroke="#4F46E5"
+                strokeOpacity={0.3}
+                strokeWidth={1.5}
+                className="pointer-events-none transition-all duration-200"
+              />
+            )}
+
             {/* Topic Tracks Constellation */}
             {displayedData.map((topic) => {
               const xStart = getX(topic.startTime);
