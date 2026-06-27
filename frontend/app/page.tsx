@@ -32,26 +32,33 @@ export default function Home() {
   const [lastSyncTime, setLastSyncTime] = useState<string>('--:--:--');
   const [liveTime, setLiveTime] = useState<string>('--:--:--');
 
+  // Activity log states
+  const [activities, setActivities] = useState<ActivityEvent[]>([]);
+
   useEffect(() => {
     const updateTime = () => {
       setLiveTime(new Date().toLocaleTimeString());
     };
     const delay = setTimeout(updateTime, 0);
     const timer = setInterval(updateTime, 1000);
+
+    // Initialize activities log asynchronously to avoid cascading renders
+    const initDelay = setTimeout(() => {
+      setActivities([
+        {
+          timestamp: new Date().toLocaleTimeString(),
+          message: 'System initialization completed. Dashboard online.',
+          type: 'info',
+        },
+      ]);
+    }, 0);
+
     return () => {
       clearTimeout(delay);
+      clearTimeout(initDelay);
       clearInterval(timer);
     };
-  }, []);
-
-  // Activity log states
-  const [activities, setActivities] = useState<ActivityEvent[]>(() => [
-    {
-      timestamp: typeof window !== 'undefined' ? new Date().toLocaleTimeString() : '12:00:00 AM',
-      message: 'System initialization completed. Dashboard online.',
-      type: 'info',
-    },
-  ]);
+  }, [setActivities]);
 
   // Lifted cluster detail states
   const [clusterDetail, setClusterDetail] = useState<ClusterDetailType | null>(null);
@@ -152,7 +159,15 @@ export default function Home() {
     } finally {
       if (!background) setLoading(false);
     }
-  }, []);
+  }, [
+    setTimelineData,
+    setLastSyncTime,
+    setActivities,
+    setTopSource,
+    setTopSourceCount,
+    setError,
+    setLoading,
+  ]);
 
   useEffect(() => {
     let isMounted = true;
