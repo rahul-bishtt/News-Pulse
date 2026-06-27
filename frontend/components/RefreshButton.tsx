@@ -101,13 +101,12 @@ export const RefreshButton: React.FC<RefreshButtonProps> = ({ onComplete }) => {
     <div className="flex items-center gap-3">
       <Button
         variant="outline"
-        size="sm"
         onClick={handleRefresh}
         disabled={isLoading}
-        className="h-8 gap-1.5 text-xs font-semibold border-[#27272A] bg-[#18181B] hover:bg-[#27272A]/40 text-[#FAFAFA]/90 hover:text-[#FAFAFA] rounded-lg transition-all duration-200 cursor-pointer disabled:opacity-50"
+        className="h-11 px-5 gap-2 text-sm font-semibold border-[#27272A] bg-[#18181B] hover:border-[#4F46E5] hover:shadow-lg hover:shadow-[#4F46E5]/10 text-[#FAFAFA]/90 hover:text-[#FAFAFA] rounded-xl transition-all duration-200 cursor-pointer disabled:opacity-50"
       >
         <RefreshCw
-          size={13}
+          size={16}
           className={isLoading ? 'animate-spin' : ''}
         />
         {isLoading ? 'Syncing…' : 'Refresh'}

@@ -234,35 +234,41 @@ export default function Home() {
     <main className="min-h-screen bg-background flex flex-col justify-between">
       <div>
         {/* Top Header */}
-        <header className="sticky top-0 z-20 border-b border-[#27272A] bg-[#09090B]/95 backdrop-blur-sm">
-          <div className="max-w-[1650px] mx-auto px-6 md:px-12 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <header className="sticky top-0 z-20 border-b border-[#27272A] bg-[#09090B]/95 backdrop-blur-sm min-h-[80px] flex items-center">
+          <div className="max-w-[1650px] w-full mx-auto px-6 md:px-12 py-4 md:py-0 flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-8">
             <div className="space-y-1">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-lg bg-[#4F46E5] flex items-center justify-center text-white shadow-lg shadow-[#4F46E5]/20 shrink-0">
-                  <Activity size={22} className="animate-pulse text-[#FAFAFA]" />
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-xl bg-[#4F46E5] flex items-center justify-center text-white shadow-lg shadow-[#4F46E5]/20 shrink-0">
+                  <Activity size={27} className="animate-pulse text-[#FAFAFA]" />
                 </div>
-                <div>
-                  <h1 className="text-xl font-extrabold tracking-tight text-[#FAFAFA] flex items-center gap-2">
+                <div className="flex flex-col">
+                  <h1 className="text-xl font-bold tracking-tight text-[#FAFAFA] leading-tight">
                     News Pulse
                   </h1>
+                  <p className="text-xs text-zinc-400 font-medium leading-tight mt-0.5">
+                    AI News Intelligence Dashboard
+                  </p>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground max-w-xl leading-relaxed">
-                Track how news stories evolve by clustering related articles from multiple sources.
-              </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 md:gap-7 w-full md:w-auto">
               {/* Topic Search Input */}
-              <div className="relative w-full md:w-64">
-                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              <div className="relative w-full md:w-[360px]">
+                <Search className="absolute left-3.5 top-[14px] h-4 w-4 text-muted-foreground" />
                 <input
                   type="text"
-                  placeholder="Search news topics..."
+                  placeholder="Search topics, sources..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-8 pl-8 pr-3 text-xs bg-[#18181B] border border-[#27272A] rounded-lg text-[#FAFAFA] placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#4F46E5] focus:border-[#4F46E5] transition-all"
+                  className="w-full h-11 pl-11 pr-4 text-xs md:text-sm bg-[#18181B] border border-[#27272A] rounded-xl text-[#FAFAFA] placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#4F46E5] focus:border-[#4F46E5] transition-all"
                 />
+              </div>
+
+              {/* Pulsing Live Status Indicator */}
+              <div className="flex items-center gap-2 px-3.5 py-2.5 bg-[#22C55E]/5 border border-[#22C55E]/15 rounded-xl text-xs font-semibold text-[#22C55E] select-none shrink-0 h-11 justify-center">
+                <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse duration-[2000ms]" />
+                <span>Live</span>
               </div>
 
               <RefreshButton onComplete={() => loadDashboardData(true)} />
