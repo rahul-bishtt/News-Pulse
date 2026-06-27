@@ -1,5 +1,5 @@
 import re
-from collections import Counter
+from collections import Counter, defaultdict
 from typing import List, Dict, Any, Set
 from config import CLUSTER_THRESHOLD
 from db import (
@@ -64,7 +64,10 @@ STOPWORDS = {
     "know", "knows", "knew", "known", "ago", "last", "next", "past", "since", "during", "before", "after", "while", "until",
     "close", "closer", "far", "away", "often", "here", "there", "every", "each", "both", "either", "neither", "some",
     "including", "across", "among", "added", "along", "without", "within", "together", "throughout", "whose", "whom",
-    "whoever", "whichever", "family", "staff", "senior"
+    "whoever", "whichever", "family", "staff", "senior",
+    # New requested stopwords to expand
+    "latest", "reported", "expected", "early", "around", "really", "several", "according", "breaking", "live",
+    "update", "updates", "should", "company", "article", "reports"
 }
 
 def tokenize(text: str) -> Set[str]:
@@ -102,8 +105,8 @@ def get_representative_keywords(member_articles: List[Dict[str, Any]], limit: in
 
 def generate_cluster_label(member_articles: List[Dict[str, Any]]) -> str:
     """
-    Generates a human-readable title-cased label from the top 3 most frequent tokens
-    across all member articles.
+    Generates a human-readable title-cased label from cased, weighted candidate phrases
+    ranging from 2 to 4 words, prioritizing proper nouns and named entities.
     
     Args:
         member_articles (List[Dict[str, Any]]): List of member article dictionaries.
@@ -111,17 +114,146 @@ def generate_cluster_label(member_articles: List[Dict[str, Any]]) -> str:
     Returns:
         str: Generated human-readable label.
     """
-    counter = Counter()
-    for art in member_articles:
-        combined_text = f"{art.get('title', '')} {art.get('summary', '')} {art.get('body_text', '')}"
-        counter.update(tokenize(combined_text))
-        
-    most_common = counter.most_common(3)
-    if not most_common:
+    if not member_articles:
         return "General News"
         
-    words = [item[0].capitalize() for item in most_common]
-    return " ".join(words)
+    candidates = defaultdict(lambda: {
+        "score": 0.0,
+        "cased_counter": Counter(),
+        "length": 0
+    })
+    
+    fields = [
+        ("title", 5.0),
+        ("summary", 2.0),
+        ("body_text", 1.0)
+    ]
+    
+    # Common news acronyms to preserve or uppercase
+    ACRONYMS = {
+        "ai", "wwdc", "fifa", "nasa", "covid", "us", "uk", "eu", "ceo", "gop",
+        "cpu", "gpu", "ny", "nyc", "fbi", "cia", "un", "imf", "who", "fda",
+        "sec", "ftc", "dns", "ip"
+    }
+
+    # Specific casing mappings for entities with mixed case
+    CASING_MAP = {
+        "openai": "OpenAI",
+        "youtube": "YouTube",
+        "facebook": "Facebook",
+        "twitter": "Twitter",
+        "netflix": "Netflix",
+        "google": "Google",
+        "apple": "Apple",
+        "wimbledon": "Wimbledon",
+    }
+    
+    for art in member_articles:
+        for field_name, field_weight in fields:
+            text = art.get(field_name, "") or ""
+            if not text:
+                continue
+                
+            # Split into sentences to avoid phrases crossing sentence boundaries
+            sentences = re.split(r"[.!?\n]+", text)
+            for sen in sentences:
+                # Match words: letters (including unicode), digits
+                words = re.findall(r"[^\W_]+", sen)
+                if not words:
+                    continue
+                    
+                # Generate phrases of length 1, 2, 3, 4
+                for n in (1, 2, 3, 4):
+                    for i in range(len(words) - n + 1):
+                        phrase_words = words[i : i + n]
+                        
+                        # Validate words in the phrase
+                        valid = True
+                        for w in phrase_words:
+                            wl = w.lower()
+                            if wl in STOPWORDS:
+                                valid = False
+                                break
+                            # Length check: allow digits if length >= 3,
+                            # else letters must be length > 2
+                            if len(w) <= 2:
+                                if not (w.isdigit() and len(w) >= 3):
+                                    valid = False
+                                    break
+                                    
+                        if not valid:
+                            continue
+                            
+                        # Build normalized and cased representations
+                        norm_words = [w.lower() for w in phrase_words]
+                        norm_phrase = " ".join(norm_words)
+                        cased_phrase = " ".join(phrase_words)
+                        
+                        # Prioritize Proper Nouns (casing in original text)
+                        capitalized_count = sum(1 for w in phrase_words if w and w[0].isupper())
+                        proper_noun_ratio = capitalized_count / len(phrase_words)
+                        proper_noun_multiplier = 1.0 + (proper_noun_ratio * 1.5)
+                        
+                        match_score = field_weight * proper_noun_multiplier
+                        
+                        candidates[norm_phrase]["score"] += match_score
+                        candidates[norm_phrase]["cased_counter"][cased_phrase] += 1
+                        candidates[norm_phrase]["length"] = n
+
+    if not candidates:
+        return "General News"
+        
+    # Check if we have multi-word candidates (length >= 2)
+    has_multiword = any(c["length"] >= 2 for c in candidates.values())
+    
+    valid_candidates = []
+    for norm_phrase, info in candidates.items():
+        if has_multiword and info["length"] < 2:
+            continue
+            
+        score = info["score"]
+        # Length bonus: prefer 3 or 4 words over 2
+        if info["length"] == 3:
+            score *= 1.3
+        elif info["length"] == 4:
+            score *= 1.5
+            
+        valid_candidates.append({
+            "norm_phrase": norm_phrase,
+            "score": score,
+            "cased_counter": info["cased_counter"],
+            "length": info["length"]
+        })
+        
+    if not valid_candidates:
+        return "General News"
+        
+    # Sort deterministically: highest score first, then alphabetical on norm_phrase
+    valid_candidates.sort(key=lambda x: (-x["score"], x["norm_phrase"]))
+    
+    best_candidate = valid_candidates[0]
+    
+    # Choose cased version deterministically: highest frequency, then alphabetical
+    best_cased_tuple = sorted(
+        best_candidate["cased_counter"].items(),
+        key=lambda x: (-x[1], x[0])
+    )[0]
+    best_cased = best_cased_tuple[0]
+    
+    # Apply acronym and title formatting to each word in the label
+    words_formatted = []
+    for w in best_cased.split():
+        wl = w.lower()
+        if wl in CASING_MAP:
+            words_formatted.append(CASING_MAP[wl])
+        elif wl in ACRONYMS:
+            words_formatted.append(w.upper())
+        elif w.isupper() and len(w) > 1:
+            words_formatted.append(w)
+        else:
+            words_formatted.append(w.capitalize())
+            
+    return " ".join(words_formatted)
 
 def refresh_cluster_metadata(cluster_id: int, label: str, cursor: Any) -> None:
     """
