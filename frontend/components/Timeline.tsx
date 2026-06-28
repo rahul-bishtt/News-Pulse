@@ -56,37 +56,112 @@ export const Timeline: React.FC<TimelineProps> = ({
     return topTopics.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
   }, [sortedData, showAll]);
 
-  // Calculate overall date boundaries for the entire dataset (for stable scaling)
-  const { domainMin, domainSpan } = useMemo(() => {
-    if (data.length === 0) {
-      const staticTime = 1770000000000; // static base timestamp for purity
-      return { domainMin: staticTime - 24 * 60 * 60 * 1000, domainSpan: 24 * 60 * 60 * 1000 };
+  // 3. Piecewise Non-linear Time Mapping to compress large timeline gaps (e.g. outlier singletons)
+  const { getVirtualTime, domainMinVirtual, domainSpanVirtual, ticks } = useMemo(() => {
+    // Get all unique timestamps and sort them ascending
+    const uniqueTimes = Array.from(
+      new Set(
+        data.flatMap(d => [
+          new Date(d.startTime).getTime(),
+          new Date(d.endTime).getTime()
+        ])
+      )
+    ).sort((a, b) => a - b);
+
+    if (uniqueTimes.length === 0) {
+      const staticTime = 1770000000000;
+      return {
+        getVirtualTime: (t: number) => t,
+        domainMinVirtual: staticTime - 24 * 60 * 60 * 1000,
+        domainSpanVirtual: 24 * 60 * 60 * 1000,
+        ticks: [staticTime]
+      };
     }
-    const timestamps = data.flatMap((d) => [
-      new Date(d.startTime).getTime(),
-      new Date(d.endTime).getTime(),
-    ]);
-    const min = Math.min(...timestamps);
-    const max = Math.max(...timestamps);
-    const span = Math.max(max - min, 60 * 60 * 1000); // min 1 hour span
-    return { domainMin: min, domainSpan: span };
+
+    // Build virtual mapping for each unique timestamp
+    const MAX_GAP = 5 * 24 * 60 * 60 * 1000; // 5 days
+    const COMPRESSED_GAP = 1 * 24 * 60 * 60 * 1000; // 1 day
+
+    const virtualTimes: number[] = [0];
+    for (let i = 1; i < uniqueTimes.length; i++) {
+      const gap = uniqueTimes[i] - uniqueTimes[i - 1];
+      if (gap > MAX_GAP) {
+        virtualTimes.push(virtualTimes[i - 1] + COMPRESSED_GAP);
+      } else {
+        virtualTimes.push(virtualTimes[i - 1] + gap);
+      }
+    }
+
+    // Define the piecewise interpolation function getVirtualTime
+    const getVirtualTime = (realTime: number) => {
+      if (uniqueTimes.length === 0) return realTime;
+
+      // Before first
+      if (realTime <= uniqueTimes[0]) {
+        return virtualTimes[0] - (uniqueTimes[0] - realTime);
+      }
+      // After last
+      if (realTime >= uniqueTimes[uniqueTimes.length - 1]) {
+        const lastIdx = uniqueTimes.length - 1;
+        return virtualTimes[lastIdx] + (realTime - uniqueTimes[lastIdx]);
+      }
+
+      // Find the interval
+      for (let i = 0; i < uniqueTimes.length - 1; i++) {
+        if (realTime >= uniqueTimes[i] && realTime <= uniqueTimes[i + 1]) {
+          const ratio = (realTime - uniqueTimes[i]) / (uniqueTimes[i + 1] - uniqueTimes[i]);
+          return virtualTimes[i] + ratio * (virtualTimes[i + 1] - virtualTimes[i]);
+        }
+      }
+      return realTime;
+    };
+
+    const domainMinVirtual = virtualTimes[0];
+    const domainSpanVirtual = Math.max(virtualTimes[virtualTimes.length - 1] - domainMinVirtual, 60 * 60 * 1000);
+
+    // Generate ticks evenly in virtual space and reverse map to real timestamps
+    const numTicks = 6;
+    const tickItems: number[] = [];
+    for (let i = 0; i < numTicks; i++) {
+      const vTime = domainMinVirtual + (domainSpanVirtual / (numTicks - 1)) * i;
+      
+      // Reverse map vTime to realTime
+      let realTime = uniqueTimes[0];
+      if (vTime <= virtualTimes[0]) {
+        realTime = uniqueTimes[0] - (virtualTimes[0] - vTime);
+      } else if (vTime >= virtualTimes[virtualTimes.length - 1]) {
+        const lastIdx = virtualTimes.length - 1;
+        realTime = uniqueTimes[lastIdx] + (vTime - virtualTimes[lastIdx]);
+      } else {
+        for (let j = 0; j < virtualTimes.length - 1; j++) {
+          if (vTime >= virtualTimes[j] && vTime <= virtualTimes[j + 1]) {
+            const ratio = (vTime - virtualTimes[j]) / (virtualTimes[j + 1] - virtualTimes[j]);
+            realTime = uniqueTimes[j] + ratio * (uniqueTimes[j + 1] - uniqueTimes[j]);
+            break;
+          }
+        }
+      }
+      tickItems.push(realTime);
+    }
+
+    return { getVirtualTime, domainMinVirtual, domainSpanVirtual, ticks: tickItems };
   }, [data]);
 
-  // 4. Greedy Lane Packing to assign vertical tracks without collision
+  // 4. Greedy Lane Packing to assign vertical tracks without collision (using virtual time for visual layout safety)
   const { topicLanes, totalLanes } = useMemo(() => {
-    const lanes: number[][] = []; // holds endTimes for each lane
+    const lanes: number[][] = []; // holds virtual endTimes for each lane
     const mapping: Record<number, number> = {};
-    
-    // Pack all data to keep lanes stable when searching/filtering
+
+    // Pack all data to keep lanes stable
     const sortedAll = [...data].sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
-    
+
     sortedAll.forEach((topic) => {
-      const start = new Date(topic.startTime).getTime();
-      const end = new Date(topic.endTime).getTime();
-      
-      const buffer = domainSpan * 0.05; // 5% buffer to prevent labels overlapping
+      const start = getVirtualTime(new Date(topic.startTime).getTime());
+      const end = getVirtualTime(new Date(topic.endTime).getTime());
+
+      const buffer = domainSpanVirtual * 0.06; // 6% virtual buffer
       let assignedLane = -1;
-      
+
       for (let i = 0; i < lanes.length; i++) {
         const lastEnd = lanes[i][lanes[i].length - 1];
         if (start > lastEnd + buffer) {
@@ -94,7 +169,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           break;
         }
       }
-      
+
       if (assignedLane === -1) {
         assignedLane = lanes.length;
         lanes.push([end]);
@@ -105,7 +180,7 @@ export const Timeline: React.FC<TimelineProps> = ({
     });
 
     return { topicLanes: mapping, totalLanes: Math.max(lanes.length, 1) };
-  }, [data, domainSpan]);
+  }, [data, getVirtualTime, domainSpanVirtual]);
 
   // Dynamic layout calculations
   const maxLanesLimit = 8;
@@ -121,9 +196,10 @@ export const Timeline: React.FC<TimelineProps> = ({
   // Helper to map time to X coordinate
   const getX = useCallback((isoString: string) => {
     const time = new Date(isoString).getTime();
-    const ratio = (time - domainMin) / domainSpan;
+    const virtualTime = getVirtualTime(time);
+    const ratio = (virtualTime - domainMinVirtual) / domainSpanVirtual;
     return paddingLeft + ratio * (chartWidth - paddingLeft - paddingRight);
-  }, [domainMin, domainSpan, paddingLeft, paddingRight, chartWidth]);
+  }, [getVirtualTime, domainMinVirtual, domainSpanVirtual, paddingLeft, paddingRight, chartWidth]);
 
   // Helper to map lane index to Y coordinate
   const getY = useCallback((topicId: number) => {
@@ -131,17 +207,6 @@ export const Timeline: React.FC<TimelineProps> = ({
     const wrappedIndex = laneIndex % activeLanesCount;
     return paddingTop + wrappedIndex * (chartHeight / Math.max(activeLanesCount - 1, 1));
   }, [topicLanes, activeLanesCount, paddingTop, chartHeight]);
-
-  // Generate Chronological X-axis ticks
-  const ticks = useMemo(() => {
-    const numTicks = 6;
-    const items = [];
-    for (let i = 0; i < numTicks; i++) {
-      const time = domainMin + (domainSpan / (numTicks - 1)) * i;
-      items.push(time);
-    }
-    return items;
-  }, [domainMin, domainSpan]);
 
   const maxCountInBatch = useMemo(() => {
     return Math.max(...data.map((t) => t.articleCount), 1);
@@ -344,7 +409,21 @@ export const Timeline: React.FC<TimelineProps> = ({
   };
 
   const formatTickDate = (timeMs: number) => {
-    return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' }).format(new Date(timeMs));
+    const date = new Date(timeMs);
+    const dayStr = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' }).format(date);
+    
+    // Check if there are other ticks with the same dayStr
+    const hasDuplicateDay = ticks.some(t => {
+      if (t === timeMs) return false;
+      const otherDay = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' }).format(new Date(t));
+      return otherDay === dayStr;
+    });
+    
+    if (hasDuplicateDay) {
+      const timeStr = new Intl.DateTimeFormat('en', { hour: 'numeric', minute: '2-digit', hour12: true }).format(date);
+      return `${dayStr}, ${timeStr}`;
+    }
+    return dayStr;
   };
 
   /* ── 1. Skeleton Loader ── */
