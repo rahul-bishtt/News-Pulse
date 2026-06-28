@@ -24,7 +24,8 @@ export const Timeline: React.FC<TimelineProps> = ({
   loading = false,
 }) => {
   const [hoveredTopic, setHoveredTopic] = useState<TimelineData | null>(null);
-  const [hoveredPosition, setHoveredPosition] = useState<{ x: number; y: number } | null>(null);
+  const [activeTooltip, setActiveTooltip] = useState<TimelineData | null>(null);
+  const [activePosition, setActivePosition] = useState<{ x: number; y: number; transform: string } | null>(null);
   const [showAll, setShowAll] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -109,11 +110,11 @@ export const Timeline: React.FC<TimelineProps> = ({
   // Dynamic layout calculations
   const maxLanesLimit = 8;
   const activeLanesCount = Math.min(totalLanes, maxLanesLimit);
-  const svgHeight = activeLanesCount * 65 + 115;
+  const svgHeight = activeLanesCount * 52 + 110;
   const paddingLeft = 70;
   const paddingRight = 70;
   const paddingTop = 50;
-  const paddingBottom = 55;
+  const paddingBottom = 45;
   const chartHeight = svgHeight - paddingTop - paddingBottom;
   const chartWidth = 1000; // Fixed coordinate system for viewBox scaling
 
@@ -141,6 +142,72 @@ export const Timeline: React.FC<TimelineProps> = ({
     }
     return items;
   }, [domainMin, domainSpan]);
+
+  const maxCountInBatch = useMemo(() => {
+    return Math.max(...data.map((t) => t.articleCount), 1);
+  }, [data]);
+
+  const nonCollidingLabelIds = useMemo(() => {
+    // 1. Prioritize candidates in order: selected, hovered, top 5 largest by article count
+    const candidates: TimelineData[] = [];
+    
+    // Add selected
+    const selected = displayedData.find((t) => t.id === selectedClusterId);
+    if (selected) candidates.push(selected);
+    
+    // Add hovered
+    if (hoveredTopic && hoveredTopic.id !== selectedClusterId) {
+      candidates.push(hoveredTopic);
+    }
+    
+    // Add top 5 largest (only if count is 3 or more)
+    const sortedByCount = [...displayedData].sort((a, b) => b.articleCount - a.articleCount);
+    const top5 = sortedByCount.slice(0, 5);
+    top5.forEach((topic) => {
+      if (topic.articleCount >= 3) {
+        if (topic.id !== selectedClusterId && (!hoveredTopic || topic.id !== hoveredTopic.id)) {
+          candidates.push(topic);
+        }
+      }
+    });
+
+    // 2. Perform greedy overlap collision check in priority order
+    const ids = new Set<number>();
+    const rendered: { x: number; y: number }[] = [];
+    
+    candidates.forEach((topic) => {
+      const xStart = getX(topic.startTime);
+      const xEnd = getX(topic.endTime);
+      const xMid = xStart + (xEnd - xStart) / 2;
+      const yVal = getY(topic.id);
+      
+      const isPriority = topic.id === selectedClusterId || topic.id === hoveredTopic?.id;
+      
+      if (isPriority) {
+        ids.add(topic.id);
+        rendered.push({ x: xMid, y: yVal });
+      } else {
+        // Prevent overlapping labels within 90px horizontally and 22px vertically
+        const overlaps = rendered.some(l => Math.abs(l.x - xMid) < 90 && Math.abs(l.y - yVal) < 22);
+        if (!overlaps) {
+          ids.add(topic.id);
+          rendered.push({ x: xMid, y: yVal });
+        }
+      }
+    });
+    
+    return ids;
+  }, [displayedData, selectedClusterId, hoveredTopic, getX, getY]);
+
+  const sortedNodesForDrawing = useMemo(() => {
+    return [...displayedData].sort((a, b) => {
+      const aActive = a.id === selectedClusterId || a.id === hoveredTopic?.id;
+      const bActive = b.id === selectedClusterId || b.id === hoveredTopic?.id;
+      if (aActive && !bActive) return 1; // b renders first, a renders last (above b)
+      if (!aActive && bActive) return -1; // a renders first, b renders last (above a)
+      return 0;
+    });
+  }, [displayedData, selectedClusterId, hoveredTopic]);
 
   // Helper to determine if two topics are related semantically
   const areTopicsRelated = (a: TimelineData, b: TimelineData) => {
@@ -207,32 +274,73 @@ export const Timeline: React.FC<TimelineProps> = ({
     return linesList;
   }, [displayedData, topicLanes, activeLanesCount, searchQuery, getX, getY]);
 
+  // Position tooltip based on layout context and boundaries
+  const getTooltipPosition = (
+    containerRect: DOMRect,
+    targetRect: DOMRect,
+    clientX?: number
+  ) => {
+    const nodeX = targetRect.left - containerRect.left + targetRect.width / 2;
+    const nodeY = targetRect.top - containerRect.top + targetRect.height / 2;
+
+    const isNearRight = nodeX > containerRect.width - 220;
+    const isNearLeft = nodeX < 220;
+    const isNearTop = nodeY < 140;
+
+    let x = nodeX;
+    let y = nodeY;
+    let transform = 'translate(-50%, -100%)';
+
+    if (isNearTop) {
+      // Near top -> open below
+      y = nodeY + (targetRect.height / 2) + 12;
+      transform = 'translate(-50%, 0)';
+    } else if (isNearRight) {
+      // Right side -> open left
+      x = nodeX - (targetRect.width / 2) - 12;
+      transform = 'translate(-100%, -50%)';
+    } else if (isNearLeft) {
+      // Left side -> open right
+      x = nodeX + (targetRect.width / 2) + 12;
+      transform = 'translate(0, -50%)';
+    } else {
+      // Otherwise -> open above
+      y = nodeY - (targetRect.height / 2) - 12;
+      transform = 'translate(-50%, -100%)';
+    }
+
+    // Follow the mouse on the X-axis if not on the edges
+    if (clientX !== undefined && !isNearRight && !isNearLeft) {
+      const mouseX = clientX - containerRect.left;
+      x = Math.max(120, Math.min(containerRect.width - 120, mouseX));
+    }
+
+    return { x, y, transform };
+  };
+
   // Handle hover interactions
   const handleMouseEnter = (topic: TimelineData, event: React.MouseEvent<SVGGElement>) => {
     setHoveredTopic(topic);
+    setActiveTooltip(topic);
     if (containerRef.current) {
       const containerRect = containerRef.current.getBoundingClientRect();
       const targetRect = event.currentTarget.getBoundingClientRect();
-      
-      // Calculate coordinates relative to the timeline container
-      const x = targetRect.left - containerRect.left + targetRect.width / 2;
-      const y = targetRect.top - containerRect.top;
-      setHoveredPosition({ x, y });
+      const pos = getTooltipPosition(containerRect, targetRect);
+      setActivePosition(pos);
     }
   };
 
   const handleMouseMove = (event: React.MouseEvent<SVGGElement>) => {
     if (containerRef.current && hoveredTopic) {
       const containerRect = containerRef.current.getBoundingClientRect();
-      // Follow the mouse slightly on the X-axis for better alignment
-      const x = event.clientX - containerRect.left;
-      setHoveredPosition((prev) => prev ? { ...prev, x } : null);
+      const targetRect = event.currentTarget.getBoundingClientRect();
+      const pos = getTooltipPosition(containerRect, targetRect, event.clientX);
+      setActivePosition(pos);
     }
   };
 
   const handleMouseLeave = () => {
     setHoveredTopic(null);
-    setHoveredPosition(null);
   };
 
   const formatTickDate = (timeMs: number) => {
@@ -292,38 +400,59 @@ export const Timeline: React.FC<TimelineProps> = ({
 
   return (
     <Card id="timeline-container" ref={containerRef} className="bg-[#18181B] border-[#27272A] rounded-xl shadow-lg relative overflow-visible">
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes hoverPulse {
+          0% {
+            transform: scale(1.08);
+            filter: brightness(1.15) drop-shadow(0 0 5px rgba(99, 102, 241, 0.4));
+          }
+          50% {
+            transform: scale(1.11);
+            filter: brightness(1.22) drop-shadow(0 0 8px rgba(99, 102, 241, 0.6));
+          }
+          100% {
+            transform: scale(1.08);
+            filter: brightness(1.15) drop-shadow(0 0 5px rgba(99, 102, 241, 0.4));
+          }
+        }
+        .hover-pulse-active {
+          animation: hoverPulse 2s infinite ease-in-out;
+        }
+      ` }} />
       {/* Absolute Tooltip Overlay */}
-      {hoveredTopic && hoveredPosition && (
+      {activeTooltip && activePosition && (
         <div
-          className="absolute z-30 bg-[#09090B]/98 backdrop-blur-md border border-[#4F46E5]/30 text-[#FAFAFA] p-4.5 rounded-xl shadow-2xl shadow-[#4F46E5]/5 max-w-xs space-y-2.5 pointer-events-none transition-all duration-75 ease-out"
+          className="absolute z-30 bg-[#09090B]/98 backdrop-blur-md border border-[#27272A] text-[#FAFAFA] p-5 rounded-xl shadow-[0_12px_30px_rgba(0,0,0,0.5)] max-w-xs space-y-2.5 pointer-events-none"
           style={{
-            left: `${hoveredPosition.x}px`,
-            top: `${hoveredPosition.y - 12}px`,
-            transform: 'translate(-50%, -100%)',
+            left: `${activePosition.x}px`,
+            top: `${activePosition.y}px`,
+            transform: activePosition.transform,
+            opacity: hoveredTopic ? 1 : 0,
+            transition: 'opacity 135ms ease-in-out, transform 135ms ease-in-out, left 135ms ease-out, top 135ms ease-out',
           }}
         >
-          <div className="font-bold text-sm text-[#FAFAFA] leading-snug border-b border-[#27272A] pb-1.5">
-            {hoveredTopic.label}
+          <div className="font-semibold text-base text-[#FAFAFA] leading-snug border-b border-[#27272A] pb-2">
+            {activeTooltip.label}
           </div>
-          <div className="space-y-1.5 text-xs text-zinc-300">
+          <div className="space-y-1.5 text-xs text-zinc-400">
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[#4F46E5]" />
-              <span><strong>{hoveredTopic.articleCount}</strong> articles published</span>
+              <span><strong>{activeTooltip.articleCount}</strong> articles published</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
-              <span>Coverage Intensity: <strong>{Math.round(hoveredTopic.intensity * 100)}%</strong></span>
+              <span>Relative Coverage: <strong>{Math.round(activeTooltip.intensity * 100)}%</strong></span>
             </div>
-            {hoveredTopic.sources && hoveredTopic.sources.length > 0 && (
+            {activeTooltip.sources && activeTooltip.sources.length > 0 && (
               <div className="flex items-start gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#4F46E5] shrink-0 mt-1" />
-                <span className="line-clamp-2">Sources: {hoveredTopic.sources.join(', ')}</span>
+                <span className="line-clamp-2">Sources: {activeTooltip.sources.join(', ')}</span>
               </div>
             )}
-            <div className="flex items-center gap-2 border-t border-[#27272A]/50 pt-1.5 text-[10px] font-mono text-muted-foreground">
-              <span className="w-1.5 h-1.5 rounded-full bg-zinc-500" />
+            <div className="flex items-center gap-2 border-t border-[#27272A]/50 pt-1.5 text-[10px] font-mono text-zinc-500">
+              <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
               <span>
-                {new Date(hoveredTopic.startTime).toLocaleDateString()} - {new Date(hoveredTopic.endTime).toLocaleDateString()}
+                {new Date(activeTooltip.startTime).toLocaleDateString()} - {new Date(activeTooltip.endTime).toLocaleDateString()}
               </span>
             </div>
           </div>
@@ -335,13 +464,13 @@ export const Timeline: React.FC<TimelineProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <CalendarDays size={20} className="text-[#4F46E5] animate-pulse" />
-            <CardTitle className="text-base font-bold tracking-tight text-[#FAFAFA]">Topic Evolution Timeline</CardTitle>
+            <CardTitle className="text-base font-bold tracking-tight text-[#FAFAFA]">News Evolution Timeline</CardTitle>
             <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 border-[#27272A] text-muted-foreground ml-1">
               Interactive
             </Badge>
           </div>
           <CardDescription className="text-[13px] mt-1">
-            Map out news categories chronologically. Circle size dictates article density, and path length indicates duration.
+            Visualize how major news stories emerge, evolve and grow over time.
           </CardDescription>
         </div>
 
@@ -358,7 +487,7 @@ export const Timeline: React.FC<TimelineProps> = ({
         )}
       </CardHeader>
 
-      <CardContent className="pb-8 pt-4 px-8 overflow-x-auto">
+      <CardContent className="pb-8 pt-0 px-8 overflow-x-auto">
         <div className="min-w-[800px] relative">
           <svg
             viewBox={`0 0 ${chartWidth} ${svgHeight}`}
@@ -394,7 +523,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                     y1={paddingTop - 10}
                     x2={xVal}
                     y2={svgHeight - paddingBottom + 10}
-                    stroke="#3F3F46"
+                    stroke="#52525B"
                     strokeWidth={1}
                     strokeDasharray="4 4"
                   />
@@ -417,7 +546,7 @@ export const Timeline: React.FC<TimelineProps> = ({
               y1={svgHeight - paddingBottom + 10}
               x2={chartWidth - paddingRight + 20}
               y2={svgHeight - paddingBottom + 10}
-              stroke="#3F3F46"
+              stroke="#52525B"
               strokeWidth={1.5}
             />
 
@@ -431,10 +560,10 @@ export const Timeline: React.FC<TimelineProps> = ({
                   y1={yVal}
                   x2={chartWidth - paddingRight + 20}
                   y2={yVal}
-                  stroke="#3F3F46"
+                  stroke="#52525B"
                   strokeWidth={1}
                   strokeDasharray="2 6"
-                  opacity={0.55}
+                  opacity={0.65}
                 />
               );
             })}
@@ -459,14 +588,14 @@ export const Timeline: React.FC<TimelineProps> = ({
             {hoveredTopic && (
               <rect
                 x={paddingLeft - 20}
-                y={getY(hoveredTopic.id) - 28}
+                y={getY(hoveredTopic.id) - 24}
                 width={chartWidth - paddingLeft - paddingRight + 40}
-                height={56}
-                rx={8}
+                height={48}
+                rx={6}
                 fill="#4F46E5"
-                fillOpacity={0.03}
+                fillOpacity={0.02}
                 stroke="#4F46E5"
-                strokeOpacity={0.12}
+                strokeOpacity={0.06}
                 strokeWidth={1}
                 className="pointer-events-none transition-all duration-150 ease-out"
               />
@@ -474,21 +603,21 @@ export const Timeline: React.FC<TimelineProps> = ({
             {selectedClusterId !== null && (
               <rect
                 x={paddingLeft - 20}
-                y={getY(selectedClusterId) - 28}
+                y={getY(selectedClusterId) - 24}
                 width={chartWidth - paddingLeft - paddingRight + 40}
-                height={56}
-                rx={8}
+                height={48}
+                rx={6}
                 fill="#4F46E5"
-                fillOpacity={0.07}
-                stroke="#4F46E5"
-                strokeOpacity={0.3}
-                strokeWidth={1.5}
+                fillOpacity={0.04}
+                stroke="#818CF8"
+                strokeOpacity={0.12}
+                strokeWidth={1}
                 className="pointer-events-none transition-all duration-150 ease-out"
               />
             )}
 
             {/* Topic Tracks Constellation */}
-            {displayedData.map((topic) => {
+            {sortedNodesForDrawing.map((topic) => {
               const xStart = getX(topic.startTime);
               const xEnd = getX(topic.endTime);
               const yVal = getY(topic.id);
@@ -497,18 +626,27 @@ export const Timeline: React.FC<TimelineProps> = ({
               const isSelected = selectedClusterId === topic.id;
               const isHovered = hoveredTopic?.id === topic.id;
 
-              // Calculate radius based on volume: min 9.2px, max 30px (15% larger)
-              const maxCountInBatch = Math.max(...data.map((t) => t.articleCount), 1);
-              const rVal = 9.2 + Math.sqrt(topic.articleCount / maxCountInBatch) * 20.7;
+              // Calculate radius based on volume: min 7.2px, max 28.8px (reduced by 20%)
+              let rVal = 7.2 + Math.sqrt(topic.articleCount / maxCountInBatch) * 21.6;
+              if (topic.articleCount === 1) {
+                rVal = rVal * 0.65; // reduce radius by 35%
+              } else if (topic.articleCount === 2) {
+                rVal = rVal * 0.82; // slightly smaller standard node
+              }
 
               // Opacity matches intensity (faded if search active and not matching)
               const matchesSearch = topic.label.toLowerCase().includes(searchQuery.toLowerCase());
-              const baseOpacity = 0.4 + topic.intensity * 0.6;
+              let baseOpacity = 0.4 + topic.intensity * 0.6;
+              if (topic.articleCount === 1) {
+                baseOpacity = baseOpacity * 0.65; // reduce opacity slightly
+              }
               const isAnyActive = selectedClusterId !== null || hoveredTopic !== null;
               const isActiveNode = isSelected || isHovered;
               const opacity = searchQuery
-                ? (matchesSearch ? 1.0 : 0.15)
-                : (isActiveNode ? 1.0 : (isAnyActive ? 0.25 : baseOpacity));
+                ? (matchesSearch ? 1.0 : 0.12)
+                : (isActiveNode ? 1.0 : (isAnyActive ? 0.16 : baseOpacity));
+
+              const isLabelVisible = nonCollidingLabelIds.has(topic.id);
 
               return (
                 <g
@@ -563,7 +701,11 @@ export const Timeline: React.FC<TimelineProps> = ({
                     stroke={isSelected || isHovered ? '#818CF8' : '#27272A'}
                     strokeWidth={isSelected || isHovered ? 3.5 : 2}
                     strokeLinecap="round"
-                    className="transition-all duration-150 ease-out"
+                    style={{
+                      transform: isHovered ? 'scaleY(1.3)' : 'scaleY(1)',
+                      transformOrigin: `${xMid}px ${yVal}px`,
+                      transition: 'transform 135ms ease-out, stroke 135ms ease-out',
+                    }}
                   />
 
                   {/* Midpoint connector line down to chronological axis */}
@@ -595,18 +737,20 @@ export const Timeline: React.FC<TimelineProps> = ({
                     fill={isSelected || isHovered ? '#818CF8' : '#3F3F46'}
                   />
 
-                  {/* Outer glowing halo ring for selected/hovered nodes */}
-                  {(isSelected || isHovered) && (
+                  {/* Stable selected outer ring (subtle indigo glow, thicker ring) */}
+                  {isSelected && (
                     <circle
                       cx={xMid}
                       cy={yVal}
-                      r={rVal + 5}
+                      r={rVal + 6}
                       fill="none"
-                      stroke={isSelected ? '#4F46E5' : '#818CF8'}
-                      strokeWidth={1.5}
-                      opacity={isSelected ? 0.6 : 0.4}
-                      className="animate-ping"
-                      style={{ animationDuration: '3s' }}
+                      stroke="#6366F1"
+                      strokeWidth={2.2}
+                      opacity={0.9}
+                      style={{
+                        filter: 'drop-shadow(0 0 5px rgba(99, 102, 241, 0.45))',
+                        transition: 'all 135ms ease-out',
+                      }}
                     />
                   )}
 
@@ -618,25 +762,39 @@ export const Timeline: React.FC<TimelineProps> = ({
                     fill={isSelected || isHovered ? 'url(#activeGrad)' : 'url(#inactiveGrad)'}
                     stroke={isSelected ? '#FAFAFA' : isHovered ? '#818CF8' : '#27272A'}
                     strokeWidth={isSelected ? 2 : 1.2}
-                    filter={isSelected ? 'url(#nodeGlow)' : undefined}
-                    className="transition-all duration-150 ease-out"
+                    className={isHovered ? 'hover-pulse-active cursor-pointer' : 'cursor-pointer'}
+                    style={{
+                      transformOrigin: `${xMid}px ${yVal}px`,
+                      transform: isHovered ? undefined : 'scale(1)',
+                      filter: isSelected ? 'url(#nodeGlow)' : undefined,
+                      transition: 'transform 135ms ease-out, filter 135ms ease-out, stroke 135ms ease-out',
+                    }}
                   />
 
-                  {/* Text Label Backdrop Capsule (for readability) */}
-                  {(isSelected || isHovered || topic.articleCount > maxCountInBatch * 0.25) && (
-                    <g className="transition-all duration-150 ease-out">
-                      {/* Dynamic label text */}
-                      <text
-                        x={xMid}
-                        y={yVal - rVal - 12}
-                        textAnchor="middle"
-                        fill={isSelected ? '#FAFAFA' : isHovered ? '#A5B4FC' : '#E4E4E7'}
-                        className={`text-xs ${isSelected ? 'font-bold' : 'font-semibold'} tracking-wide`}
-                      >
-                        {topic.label.length > 26 ? `${topic.label.slice(0, 24)}...` : topic.label}
-                      </text>
-                    </g>
-                  )}
+                  {/* Text Label Backdrop Capsule (with smooth opacity fade) */}
+                  <g
+                    style={{
+                      opacity: isLabelVisible ? 1 : 0,
+                      transition: 'opacity 135ms ease-in-out',
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    {/* Dynamic label text */}
+                    <text
+                      x={xMid}
+                      y={yVal - rVal - 12}
+                      textAnchor="middle"
+                      fill={isSelected ? '#FAFAFA' : isHovered ? '#A5B4FC' : '#E4E4E7'}
+                      className={`text-xs ${isSelected || isHovered ? 'font-bold' : 'font-medium'} tracking-wide`}
+                      style={{
+                        transform: isHovered ? 'translateY(-2px)' : 'translateY(0px)',
+                        transformOrigin: `${xMid}px ${yVal}px`,
+                        transition: 'transform 135ms ease-out, fill 135ms ease-out',
+                      }}
+                    >
+                      {topic.label.length > 20 ? `${topic.label.slice(0, 18)}...` : topic.label}
+                    </text>
+                  </g>
                 </g>
               );
             })}
