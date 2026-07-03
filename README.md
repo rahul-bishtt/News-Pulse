@@ -35,76 +35,72 @@ The project was designed to demonstrate end-to-end software engineering skills�
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack
 
-* **Frontend**: Next.js 14+ (App Router), React, TypeScript, TailwindCSS, Recharts, Axios.
-* **Backend**: Node.js, Express, dotenv, cors, pg (PostgreSQL driver), nodemon.
-* **Scraper**: Python 3.11+, feedparser, requests, trafilatura, python-dateutil, scikit-learn, psycopg2-binary.
-* **Database**: PostgreSQL (e.g. Supabase, Neon, or local database).
+### Frontend
+- **Next.js 16**
+- **React 19**
+- **TypeScript**
+- **Tailwind CSS**
+- **Axios**
+- **Recharts**
+
+### Backend
+- **Node.js**
+- **Express.js**
+- **Python** (News scraping pipeline)
+
+### Database
+- **PostgreSQL**
+- **AWS RDS**
+
+### Cloud & DevOps
+- **AWS EC2**
+- **Nginx**
+- **PM2**
+- **Git & GitHub**
+
+### Development Tools
+- VS Code
+- Postman
+- pgAdmin
 
 ---
 
-## Folder Structure
+## 📂 Project Structure
 
 ```text
-news-pulse/
-├── .github/workflows/           # GitHub Actions workflows
-│   └── ingest-cron.yml          # Scheduled ingestion trigger
-├── .vscode/                     # VS Code workspace settings
-│   ├── settings.json
-│   └── extensions.json
-├── backend/                     # Node/Express API
-│   ├── src/
-│   │   ├── db/                  # DB connection and queries
-│   │   │   ├── pool.js
-│   │   │   ├── queries.js
-│   │   │   └── schema.sql       # Database DDL schema
-│   │   ├── jobs/                # Background job states
-│   │   │   └── jobStore.js
-│   │   ├── middleware/          # Express middlewares
-│   │   │   ├── errorHandler.js
-│   │   │   └── validate.js
-│   │   ├── routes/              # API endpoints
-│   │   │   ├── clusters.js
-│   │   │   ├── ingest.js
-│   │   │   └── timeline.js
-│   │   └── server.js            # Express server entrypoint
-│   ├── scripts/
-│   │   └── init-db.js           # Database initialization script
-│   ├── .env.example
-│   ├── package.json
-│   ├── .eslintrc.json
-│   └── .prettierrc
-├── frontend/                    # Next.js Application
-│   ├── app/                     # App router pages
-│   │   └── page.tsx
-│   ├── components/              # Interactive UI components
-│   │   ├── Timeline.tsx
-│   │   ├── ClusterDetail.tsx
-│   │   ├── SourceFilter.tsx
-│   │   └── RefreshButton.tsx
-│   ├── lib/
-│   │   └── api.ts               # Axios-based fetch wrappers
-│   ├── .env.example
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── tailwind.config.ts
-│   └── postcss.config.js
-├── scraper/                     # Python ingestion & clustering
-│   ├── main.py                  # Scraper execution pipeline entrypoint
-│   ├── feeds.py                 # RSS fetching and parsing
-│   ├── normalize.py             # RSS field normalization
-│   ├── extract.py               # Article body web extractor
-│   ├── dedupe.py                # Duplicate detection helper
-│   ├── cluster.py               # Tokenization and clustering algorithms
-│   ├── db.py                    # DB queries & commits
-│   ├── config.py                # Environment configurations
-│   ├── requirements.txt
-│   └── tests/                   # Folder for scraper unit tests
-├── .gitignore
-├── .env.example
-├── PROJECT_STATUS.md            # High level checklist status tracker
-└── README.md
+News-Pulse/
+│
+├── backend/          # Express REST API
+├── frontend/         # Next.js frontend
+├── scraper/          # Python scraping pipeline
+├── .github/          # GitHub workflows
+├── README.md
+├── roadmap.md
+├── News_Pulse_PRD.md
+└── News_Pulse_TRD.md
+```
+
+## 🏗️ System Architecture
+
+```text
+                    User
+                      │
+                      ▼
+                Nginx (Port 80)
+                      │
+        ┌─────────────┴─────────────┐
+        ▼                           ▼
+ Next.js Frontend            Express Backend
+    (Port 3000)               (Port 4000)
+                                      │
+                                      ▼
+                            PostgreSQL (AWS RDS)
+                                      │
+                                      ▼
+                           Python News Scraper
+```
 ```
 
 ---
