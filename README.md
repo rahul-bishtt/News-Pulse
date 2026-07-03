@@ -1,13 +1,37 @@
-# News Pulse
+# 📰 News Pulse
 
-News Pulse is an end-to-end web application that ingests articles from multiple public RSS feeds, clusters them into cohesive news topics based on text similarity, and visualizes them on an interactive timeline.
+> **An AI-powered News Intelligence Platform that automatically scrapes, clusters, and visualizes breaking news into evolving story timelines.**
 
-## Project Overview
+![Status](https://img.shields.io/badge/Status-Production%20Ready-success)
+![Node.js](https://img.shields.io/badge/Node.js-Express-green)
+![Next.js](https://img.shields.io/badge/Next.js-16-black)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-AWS%20RDS-blue)
+![AWS](https://img.shields.io/badge/Hosted%20on-AWS-orange)
+![License](https://img.shields.io/badge/License-MIT-blue)
 
-News Pulse helps readers overcome news redundancy and grasp the progression of stories over time. It has three core components:
-1. **Python Scraper**: Fetches feeds, extracts body text, dedupes, and clusters articles.
-2. **Node/Express Backend API**: Exposes endpoints to retrieve clusters, timelines, and trigger ingestion runs.
-3. **Next.js Frontend**: Plottable interactive timeline and drill-down interfaces.
+---
+
+## 🚀 Overview
+
+News Pulse is a full-stack news intelligence platform that continuously collects news articles, groups related stories using clustering algorithms, and presents them as interactive timelines.
+
+Instead of reading hundreds of individual articles, users can explore how major news stories emerge, evolve, and conclude through a clean visual dashboard.
+
+The project was designed to demonstrate end-to-end software engineering skills—from backend API development and database design to cloud deployment on AWS.
+
+---
+
+## ✨ Features
+
+- 📰 Automatic news ingestion pipeline
+- 🤖 AI-powered news clustering
+- 📈 Interactive timeline visualization
+- 🔍 Trending topic ranking
+- 📊 Cluster analytics dashboard
+- ⚡ RESTful backend API
+- 🗄️ PostgreSQL database hosted on AWS RDS
+- ☁️ Production deployment using AWS EC2 + Nginx + PM2
+- 📱 Responsive dark-themed UI built with Next.js
 
 ---
 
