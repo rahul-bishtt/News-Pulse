@@ -41,3 +41,19 @@ htmlcov/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# AWS / Deployment
+*.pem
+*.dump
+
+# TypeScript
+*.tsbuildinfo
+
+# IDE
+.vscode/
+
+# PM2
+.pm2/
+
+# Python virtual env
+.envrc
