@@ -82,28 +82,104 @@ News-Pulse/
 └── News_Pulse_TRD.md
 ```
 
-## 🏗️ System Architecture
-
-```text
-                    User
-                      │
-                      ▼
-                Nginx (Port 80)
-                      │
-        ┌─────────────┴─────────────┐
-        ▼                           ▼
- Next.js Frontend            Express Backend
-    (Port 3000)               (Port 4000)
+                                   👤 User
+                            │
+                            ▼
+                  ┌──────────────────┐
+                  │   Web Browser    │
+                  └──────────────────┘
+                            │
+                     HTTP (Port 80)
+                            │
+                            ▼
+                  ┌──────────────────┐
+                  │      Nginx       │
+                  │ Reverse Proxy    │
+                  └──────────────────┘
+                     │           │
+                     │           │
+          serves UI  │           │ routes API
+                     ▼           ▼
+        ┌─────────────────┐   ┌─────────────────┐
+        │   Next.js 16    │   │ Express Backend │
+        │    Frontend     │   │    Port 4000    │
+        └─────────────────┘   └─────────────────┘
+                                      │
+                         PostgreSQL Queries
                                       │
                                       ▼
-                            PostgreSQL (AWS RDS)
+                           ┌──────────────────┐
+                           │ AWS RDS          │
+                           │ PostgreSQL       │
+                           └──────────────────┘
+                                      ▲
                                       │
-                                      ▼
-                           Python News Scraper
-```
-```
+                           Stores clustered news
+                                      │
+                           ┌──────────────────┐
+                           │ Python Scraper   │
+                           │ RSS + Processing │
+                           └──────────────────┘
 
 ---
+
+### News Pulse – AWS Deployment Architecture
+
+                                        🌍 Internet
+                                             │
+                                             ▼
+                                     👤 User Browser
+                                             │
+                                      HTTP / HTTPS
+                                             │
+                                             ▼
+                               ┌──────────────────────────┐
+                               │        AWS EC2           │
+                               │   Ubuntu 24.04 Server    │
+                               └──────────────────────────┘
+                                             │
+                                             ▼
+                               ┌──────────────────────────┐
+                               │          Nginx           │
+                               │ Reverse Proxy (Port 80)  │
+                               └──────────────────────────┘
+                                   │                 │
+                                   │                 │
+                    Serves Frontend│                 │Routes API
+                                   ▼                 ▼
+                     ┌────────────────────┐   ┌────────────────────┐
+                     │   Next.js 16       │   │ Express.js Backend │
+                     │ Frontend (3000)    │   │     Port 4000      │
+                     └────────────────────┘   └────────────────────┘
+                                                      │
+                                                      │ PostgreSQL Queries
+                                                      ▼
+                               ┌────────────────────────────────────────┐
+                               │ AWS RDS PostgreSQL                     │
+                               │ news_pulse Database                    │
+                               └────────────────────────────────────────┘
+                                                      ▲
+                                                      │
+                                                      │ Stores Processed News
+                                                      │
+                               ┌────────────────────────────────────────┐
+                               │ Python Scraper                         │
+                               │ RSS Collection + Clustering Pipeline   │
+                               └────────────────────────────────────────┘
+
+
+             PM2 manages:
+             • news-pulse-frontend
+             • news-pulse-backend
+
+🌐 Internet
+👤 User
+☁️ EC2
+🌐 Nginx
+⚛️ Next.js
+🚀 Express.js
+🗄️ PostgreSQL (RDS)
+🐍 Python
 
 ## Setup Instructions
 
@@ -216,3 +292,45 @@ cd frontend
 npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000) to view the timeline.
+
+---
+
+## 📡 API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/health` | API health check |
+| GET | `/timeline` | Timeline visualization data |
+| GET | `/clusters` | List all news clusters |
+| GET | `/clusters/:id` | Cluster details |
+| POST | `/ingest/trigger` | Start scraping job |
+| GET | `/ingest/status/:jobId` | Scraping job status |
+
+---
+
+## 📚 Challenges & Learnings
+
+During deployment, I encountered and resolved several production issues, including:
+
+- PostgreSQL SSL connection configuration with AWS RDS
+- PM2 process management and environment variables
+- Nginx reverse proxy configuration
+- Next.js production build issues
+- API base URL configuration
+- AWS Security Group networking
+- Database restoration using pg_dump and pg_restore
+
+These challenges helped me gain practical experience in deploying and debugging full-stack applications in a cloud environment.
+
+---
+
+## 🚀 Future Improvements
+
+- User authentication
+- Real-time updates using WebSockets
+- AI-generated news summaries
+- Sentiment analysis
+- Advanced search and filtering
+- Dockerized deployment
+- CI/CD with GitHub Actions
+- HTTPS with Let's Encrypt
