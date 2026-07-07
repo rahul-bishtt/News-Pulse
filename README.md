@@ -122,6 +122,33 @@ News-Pulse/
    npm run db:init
    ```
 
+## 📸 Screenshots
+
+### Dashboard
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+### Timeline
+
+![Timeline](docs/screenshots/timeline.png)
+
+### Cluster Details
+
+![Cluster Details](docs/screenshots/cluster-details.png)
+
+### AWS Deployment
+
+![AWS Deployment](docs/screenshots/aws-deployment.png)
+
+### PM2
+
+![PM2](docs/screenshots/pm2.png)
+
+### API Health
+
+![API Health](docs/screenshots/api-health.png)
+
+---
 ### 2. Backend Setup
 1. Install dependencies:
    ```bash
