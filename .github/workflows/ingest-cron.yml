@@ -7,12 +7,26 @@ on:
   workflow_dispatch: # Enable manual run from GitHub Actions UI
 
 jobs:
-  trigger-ingestion:
+  run-ingestion:
     runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
     steps:
-      - name: Trigger News Pulse Ingestion
-        run: |
-          curl --fail -X POST "${{ secrets.API_BASE_URL }}/ingest/trigger" \
-            -H "Host: news-pulse.rahulbisht.me" \
-            -H "Content-Type: application/json" \
-            -d '{"source": "github-actions-cron"}'
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: scraper/requirements.txt
+
+      - name: Install Scraper Dependencies
+        run: pip install -r scraper/requirements.txt
+
+      - name: Run News Pulse Ingestion Pipeline
+        working-directory: scraper
+        run: python main.py --mode=incremental
